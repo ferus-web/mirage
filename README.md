@@ -1,4 +1,4 @@
-# Mirage - the **M**odest **I**ntermediate **R**epresentAtion **GE**nerator
+# Mirage - the **M**odest **I**ntermediate **R**epresent**A**tion **GE**nerator
 Mirage is a bytecode emitter and (soon) interpreter designed to make it easier to write interpreted languages in Nim. \
 It is made for the Bali JavaScript engine that will be used for Ferus. \
 A lot of the bytecode instructions are shamelessly ripped off from Lua :^) \
