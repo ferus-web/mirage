@@ -10,4 +10,6 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 2.0.2"
-requires "pretty"
+
+when not defined(release):
+  requires "pretty >= 0.1.0"

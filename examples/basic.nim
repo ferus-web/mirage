@@ -1,4 +1,5 @@
-import mirage/[atom, ir/gen]
+import mirage/[atom, ir/gen, runtime/interpreter]
+import pretty
 
 var generator = newCodeGenerator()
 generator.opts.deadCodeElimination = false
@@ -47,3 +48,6 @@ for warn in mir.warnings:
   echo "Warn: " & warn.message
 
 echo mir.source
+
+let interp = newInterpreter(mir.source)
+interp.run()

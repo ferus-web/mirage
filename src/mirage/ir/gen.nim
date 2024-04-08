@@ -70,42 +70,27 @@ proc express*(gen: CodeGenerator, atom: MAtom, name: string, ir: IR): string {.i
 
   op & ' ' & $idx & ' ' & crushed
 
-import pretty
-
 proc getReads*(gen: CodeGenerator, index: int): seq[Operation] {.inline.} =
-  print gen.operations
   for op in gen.operations:
     if op.kind == okRead and
       op.rname in gen.register and
       gen.register[op.rname] == index:
-      echo "guh its a read"
       result &= op
       continue
-
-    echo "not a read"
-    print op
 
     if op.kind == okWrite and 
       op.value.kind == Ref and 
       op.value.reference.isSome and
       op.value.reference.unsafeGet() == index:
-      echo "guh its a write"
       result &= op
       continue
-
-    echo "not a write"
-    print op
 
     if op.kind == okCall:
       for arg in op.call.references:
         if arg.reference.isSome and
           arg.reference.unsafeGet() == index:
-          echo "guh its a call"
           result &= op
           continue
-
-    echo "not like the other girls"
-    print op
 
 proc eliminateDeadCode*(gen: CodeGenerator) {.inline.} =
   var deleted = 0
@@ -120,7 +105,6 @@ proc eliminateDeadCode*(gen: CodeGenerator) {.inline.} =
         continue
 
       let index = gen.register[op.wname]
-      print gen.getReads(index)
       if gen.getReads(index).len < 1:
         # there's no reads to this index on the stack, feel free to nuke it :)))
         nuke i
@@ -128,7 +112,7 @@ proc eliminateDeadCode*(gen: CodeGenerator) {.inline.} =
 proc compute*(gen: CodeGenerator) {.inline.} =
   if gen.opts.deadCodeElimination:
     gen.eliminateDeadCode()
-
+import pretty
 proc generateIR*(gen: CodeGenerator): IR =
   var ir = IR()
 
@@ -180,8 +164,6 @@ proc generateIR*(gen: CodeGenerator): IR =
 
         if reference.reference.isSome:
           args.add(reference.reference.unsafeGet())
-        else:
-          args.add(gen.stack.len - 1)
       
       var op = "CALL " & op.call.name & ' '
 

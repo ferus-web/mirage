@@ -6,6 +6,7 @@ type
     Integer
     Sequence
     Ref
+    Null
 
   MAtom* = ref object
     case kind*: MAtomKind
@@ -18,6 +19,9 @@ type
     of Ref:
       reference*: Option[int]
       link*: string
+    of Null: discard
+
+  MAtomSeq* = distinct seq[MAtom]
 
 proc crush*(atom: MAtom, id: string): string {.inline.} =
   case atom.kind
@@ -37,6 +41,15 @@ proc crush*(atom: MAtom, id: string): string {.inline.} =
       return $atom.reference.unsafeGet()
 
     return atom.link
+  of Null:
+    return "Null"
+
+proc len*(s: MAtomSeq): int {.borrow.}
+proc `[]`*(s: MAtomSeq, i: Natural): MAtom {.inline.} =
+  if i < s.len and i >= 0:
+    s[i]
+  else:
+    MAtom(kind: Null)
 
 proc getStr*(atom: MAtom): Option[string] {.inline.} =
   if atom.kind == String:
