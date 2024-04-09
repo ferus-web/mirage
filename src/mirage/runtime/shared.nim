@@ -39,6 +39,7 @@ type
     LoadList = "LOADL"
     LoadStr = "LOADS"
     LoadRef = "LOADR"
+    Add = "ADD"
 
 proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
   case op
@@ -52,10 +53,13 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
     LoadList
   of "LOADR":
     LoadRef
+  of "ADD":
+    Add
   else:
     raise newException(ValueError, "Invalid operation: " & op)
 
 const
   KNOWN_OPS* = [
-    "CALL", "LOADI", "LOADL", "LOADS", "LOADR"
+    "CALL", "LOADI", "LOADL", "LOADS", "LOADR",
+    "ADD", "SUB", "MUL", "DIV"
   ]

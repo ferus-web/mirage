@@ -5,8 +5,6 @@ var generator = newCodeGenerator()
 generator.opts.deadCodeElimination = false
 
 generator.enter("main")
-#generator.setReturnType("main", Integer)
-#generator.setReturnValue("main", integer 0)
 
 generator.write(
   name = "hello",
@@ -26,13 +24,23 @@ generator.write(
   mutable = false
 )
 
+generator.write(
+  name = "e",
+  atom = str "uwu"
+)
+
 generator.call(
   "print",
   args = @[
     str "hello world!"
   ],
-  refs = @[
-    generator.reference("thinge") # doesn't exist lol
+  refs = @[]
+)
+
+generator.add(
+  @[
+    generator.reference("very_useful_value"),
+    generator.reference("thing")
   ]
 )
 

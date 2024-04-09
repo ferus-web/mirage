@@ -23,10 +23,13 @@ type
 
   MAtomSeq* = distinct seq[MAtom]
 
-proc crush*(atom: MAtom, id: string): string {.inline.} =
+proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
   case atom.kind
   of String:
-    result &= '"' & atom.str & '"'
+    if quote:
+      result &= '"' & atom.str & '"'
+    else:
+      result &= atom.str
   of Integer:
     result &= $atom.integer
   of Sequence:

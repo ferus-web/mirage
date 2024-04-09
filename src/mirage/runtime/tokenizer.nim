@@ -58,7 +58,8 @@ proc consumeWhitespace*(tokenizer: Tokenizer): Token =
     let c = tokenizer.nextChar()
 
     case c
-    of '\r', ' ', '\0', '\\':
+    of '\r', ' ', '\0', '\\', '\n':
+      tokenizer.forwards(1)
       ws.whitespace &= c
     else:
       break

@@ -1,4 +1,4 @@
-import std/[options]
+import std/[options, sequtils, sugar]
 import tokenizer, shared, clause, ../atom
 import pretty
 
@@ -29,6 +29,36 @@ proc load*(interpreter: Interpreter, source: string) {.inline.} =
 
 proc call*(interpreter: Interpreter, token: Token)
 
+{.push checks: off.}
+proc resolveRef*(interpreter: Interpreter, idx: int): MAtom {.inline.} =
+  guard(idx < interpreter.stack.len and idx >= 0, "Attempt to get atom outside of stack")
+  let atom = interpreter.stack[idx]
+
+  proc findInt(begin: MAtom): MAtom =
+    if begin.kind == Ref:
+      print begin
+      guard(begin.reference.isSome, "Weak references can't be resolved yet")
+      return interpreter
+        .resolveRef(
+          begin
+            .reference
+            .unsafeGet()
+        )
+    
+    if begin.kind == Integer:
+      return begin
+
+    guard(false, "findInt() failed; no integer atom could be found recursively.")
+
+  findInt(atom)
+{.pop.}
+
+proc grow*(interpreter: Interpreter, idx: int) {.inline.} =
+  let final = idx + 1
+
+  guard(final > interpreter.stack.len, "Attempt to shrink stack using `grow()`")
+  interpreter.stack.setLen(final)
+
 proc execute*(interpreter: Interpreter, token: Token) =
   guard(token.kind == tkOperation, "execute() got non-operation token!")
   
@@ -56,7 +86,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     guard(value.unsafeGet().kind == tkQuotedString, "LOADS expects string token for `value`, got " & $value.unsafeGet().kind)
 
     let atom = str value.unsafeGet().str
-    interpreter.stack.setLen(pos.unsafeGet().integer + 1'i32)
+    interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
   of LoadRef:
     let
@@ -78,10 +108,42 @@ proc execute*(interpreter: Interpreter, token: Token) =
         atom = strongRef value.unsafeGet().integer
       else: discard
     
-    interpreter.stack.setLen(pos.unsafeGet().integer + 1'i32)
+    interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
   of Call:
     interpreter.call(token)
+  of Add:
+    var 
+      nums: seq[MAtom]
+      accumulator: int
+      pos: int
+
+    for tok in interpreter.tokenizer.flow():
+      var next: Option[Token]
+
+      if not interpreter.tokenizer.isEof():
+        let cTokenizer = deepCopy(interpreter.tokenizer)
+        next = cTokenizer.maybeNext()
+
+      if tok.kind == tkInteger and 
+        next.isSome and
+        next.unsafeGet().kind == tkInteger:
+        nums.add(
+          interpreter.resolveRef(tok.integer)
+        )
+      else:
+        pos = tok.integer
+        break
+    
+    for num in nums:
+      guard(num.kind == Integer, "Can't add non-ints for now") # TODO: replace with interpreter based errors
+      
+      accumulator += num
+        .getInt()
+        .unsafeGet()
+
+    interpreter.grow(pos)
+    interpreter.stack[pos] = integer accumulator
   else: discard
 
 proc enter*(interpreter: Interpreter, token: Token) {.inline.} =
@@ -97,7 +159,7 @@ proc call*(interpreter: Interpreter, token: Token) =
 
   for aTok in interpreter.tokenizer.flow(includeWhitespace = true):
     if aTok.kind == tkInteger:
-      args.add(strongRef aTok.integer-1)
+      args.add(interpreter.stack[aTok.integer])
     else:
       if aTok.kind == tkWhitespace and '\n' in aTok.whitespace:
         break
@@ -109,7 +171,10 @@ proc call*(interpreter: Interpreter, token: Token) =
 
   case fn.unsafeGet().ident
   of "print":
-    print(args)
+    for arg in args:
+      arg
+        .crush("", false)
+        .echo()
 
 proc exit*(interpreter: Interpreter, token: Token) {.inline.} =
   guard(interpreter.clause.name == token.endClause, "Interpreter current clause name and token's clause name are different!")

@@ -1,5 +1,6 @@
 import std/[options, tables, times, strutils]
 import ../atom, ./types
+import pretty
 
 const
   Version {.strdefine: "NimblePkgVersion".} = "???"
@@ -16,6 +17,10 @@ type
     okWrite
     okEnter
     okGetField
+    okAdd
+    okSub
+    okMul
+    okDiv
     okExit
 
   Operation* = ref object
@@ -33,6 +38,9 @@ type
       exit*: string
     of okGetField:
       field*: string
+    of okAdd, okSub, okMul, okDiv:
+      arithmetics*: seq[MAtom] ## refs
+      newIdx*: int
 
   CodeGenerator* = ref object
     register*: TableRef[string, int]
@@ -40,22 +48,25 @@ type
     operations*: seq[Operation]
     opts*: IROpts
     alive*: seq[int]   ## Indexes on the stack that have been accessed atleast once.
-
     clause*: string
 
 proc getReads*(gen: CodeGenerator, index: int): seq[Operation] {.inline.}
 
 proc express*(gen: CodeGenerator, atom: MAtom, name: string, ir: IR): string {.inline.} =
+  if atom.kind == Null:
+    return
+
   let
     op = case atom.kind:
       of Integer: "LOADI"
       of String: "LOADS"
       of Sequence: "LOADL"
       of Ref: "LOADR"
+      of Null: ""
 
     crushed = atom.crush(name)
 
-    idx = if name in gen.register: gen.register[name] else: gen.stack.len - 1
+  var idx = if name in gen.register: gen.register[name] else: gen.stack.len - 1
 
   if name notin gen.register:
     gen.stack.add(atom)
@@ -112,7 +123,7 @@ proc eliminateDeadCode*(gen: CodeGenerator) {.inline.} =
 proc compute*(gen: CodeGenerator) {.inline.} =
   if gen.opts.deadCodeElimination:
     gen.eliminateDeadCode()
-import pretty
+
 proc generateIR*(gen: CodeGenerator): IR =
   var ir = IR()
 
@@ -137,34 +148,29 @@ proc generateIR*(gen: CodeGenerator): IR =
   proc roll(indent: var uint) {.inline.} =
     indent -= 2'u
 
-  for op in gen.operations:
+  for opidx, op in gen.operations:
     case op.kind
     of okRead:
       add "READ " & op.rname
     of okWrite:
       if op.value.kind == Ref and op.value.isWeak():
-        let msg = "\"" & op.value.link & "\" is a weak reference and will need to be resolved later."
+        #[ let msg = "\"" & op.value.link & "\" is a weak reference and will need to be resolved later."
         comment msg
         ir.warn(
           weakRefWarning(
             msg,
             op.value.link
           )
-        )
-
+        ) ]#
+        continue
+      
       add gen.express(op.value, op.wname, ir)
     of okCall:
       var args: seq[int]
       for i, arg in op.call.arguments:
-        add gen.express(arg, "arg_" & $i, ir) # immediate consts values passed are arguments
-        args.add(gen.stack.len - 1)
+        add gen.express(arg, "arg_" & $opidx & '_' & $i, ir)
+        args.add(gen.stack.len - 2)
 
-      for i, reference in op.call.references:
-        add gen.express(reference, "ref_" & $i, ir)
-
-        if reference.reference.isSome:
-          args.add(reference.reference.unsafeGet())
-      
       var op = "CALL " & op.call.name & ' '
 
       for arg in args:
@@ -175,11 +181,19 @@ proc generateIR*(gen: CodeGenerator): IR =
       comment "enter clause " & op.enter
       add "CLAUSE " & op.enter
       bump indentation
+    of okAdd:
+      var ops = "ADD "
+      for i, arith in op.arithmetics:
+        add gen.express(arith, "arg_" & $opidx & '_' & $i, ir)
+        ops &= $(gen.stack.len - 2) & ' '
+
+      add ops & $(gen.stack.len - 1)
     of okExit:
       roll indentation
       add "END " & op.exit
       comment "exit clause " & op.exit & '\n'
-    of okGetField: discard
+    else:
+      discard
 
   let preamble = "# Mirage version:$1 arch:$2 os:$3 cputime:$4\n" % [
     Version, hostCPU, hostOS, $(cpuTime() - start)
@@ -197,11 +211,20 @@ proc write*(gen: CodeGenerator, name: string = "", atom: MAtom, mutable: bool = 
       value: atom
     )
   )
-  
+
   gen.stack.add(atom)
 
   if name.len > 0:
     gen.register[name] = gen.stack.len - 1
+
+proc add*(gen: CodeGenerator, refs: seq[MAtom]) {.inline.} =
+  gen.operations.add(
+    Operation(
+      kind: okAdd,
+      arithmetics: refs,
+      newIdx: gen.stack.len - 1
+    )
+  )
 
 proc reference*(gen: CodeGenerator, name: string): MAtom {.inline.} =
   if name in gen.register:
