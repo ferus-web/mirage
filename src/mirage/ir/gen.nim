@@ -6,48 +6,11 @@ const
   Version {.strdefine: "NimblePkgVersion".} = "???"
 
 type
-  Call* = ref object
-    name*: string
-    arguments*: seq[MAtom]
-    references*: seq[MAtom]
-
-  OpKind* = enum
-    okCall
-    okRead
-    okWrite
-    okEnter
-    okGetField
-    okAdd
-    okSub
-    okMul
-    okDiv
-    okExit
-
-  Operation* = ref object
-    case kind*: OpKind
-    of okCall:
-      call*: Call
-    of okRead:
-      rname*: string
-    of okWrite:
-      wname*: string
-      value*: MAtom
-    of okEnter:
-      enter*: string
-    of okExit:
-      exit*: string
-    of okGetField:
-      field*: string
-    of okAdd, okSub, okMul, okDiv:
-      arithmetics*: seq[MAtom] ## refs
-      newIdx*: int
-
   CodeGenerator* = ref object
     register*: TableRef[string, int]
     stack*: seq[MAtom]
     operations*: seq[Operation]
     opts*: IROpts
-    alive*: seq[int]   ## Indexes on the stack that have been accessed atleast once.
     clause*: string
 
 proc getReads*(gen: CodeGenerator, index: int): seq[Operation] {.inline.}
@@ -188,10 +151,27 @@ proc generateIR*(gen: CodeGenerator): IR =
         ops &= $(gen.stack.len - 2) & ' '
 
       add ops & $(gen.stack.len - 1)
+      gen.stack.setLen(gen.stack.len + 1) # ensure that nothing writes into the area where the calculated value will be at
     of okExit:
       roll indentation
       add "END " & op.exit
       comment "exit clause " & op.exit & '\n'
+    of okMul:
+      var ops = "MULT "
+      for i, arith in op.arithmetics:
+        add gen.express(arith, "arg_ " & $opidx & '_' & $i, ir)
+        ops &= $(gen.stack.len - 2) & ' '
+
+      add ops & $(gen.stack.len - 1)
+      gen.stack.setLen(gen.stack.len + 1)
+    of okSub:
+      var ops = "SUB "
+      for i, arith in op.arithmetics:
+        add gen.express(arith, "arg_" & $opidx & '_' & $i, ir)
+        ops &= $(gen.stack.len - 2) & ' '
+
+      add ops & $(gen.stack.len - 1)
+      gen.stack.setLen(gen.stack.len + 1)
     else:
       discard
 
@@ -221,6 +201,24 @@ proc add*(gen: CodeGenerator, refs: seq[MAtom]) {.inline.} =
   gen.operations.add(
     Operation(
       kind: okAdd,
+      arithmetics: refs,
+      newIdx: gen.stack.len - 1
+    )
+  )
+
+proc sub*(gen: CodeGenerator, refs: seq[MAtom]) {.inline.} =
+  gen.operations.add(
+    Operation(
+      kind: okSub,
+      arithmetics: refs,
+      newIdx: gen.stack.len - 1
+    )
+  )
+
+proc mult*(gen: CodeGenerator, refs: seq[MAtom]) {.inline.} =
+  gen.operations.add(
+    Operation(
+      kind: okMul,
       arithmetics: refs,
       newIdx: gen.stack.len - 1
     )

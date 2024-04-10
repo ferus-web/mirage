@@ -1,3 +1,5 @@
+import ../atom, clause
+
 type
   TokenKind* = enum
     tkComment
@@ -40,6 +42,9 @@ type
     LoadStr = "LOADS"
     LoadRef = "LOADR"
     Add = "ADD"
+    Mult = "MULT"
+    Div = "DIV"
+    Sub = "SUB"
 
 proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
   case op
@@ -55,11 +60,17 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
     LoadRef
   of "ADD":
     Add
+  of "SUB":
+    Sub
+  of "MULT":
+    Mult
+  of "DIV":
+    Div
   else:
     raise newException(ValueError, "Invalid operation: " & op)
 
 const
   KNOWN_OPS* = [
     "CALL", "LOADI", "LOADL", "LOADS", "LOADR",
-    "ADD", "SUB", "MUL", "DIV"
+    "ADD", "SUB", "MULT", "DIV"
   ]

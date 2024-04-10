@@ -1,3 +1,6 @@
+import std/hashes
+import ../atom
+
 type
   WarningKind* = enum
     wkUnused   ## Unused values (these are eliminated automatically when dead code elimination is turned on)
@@ -18,6 +21,62 @@ type
   IR* = ref object
     source*: string
     warnings*: seq[Warning]
+
+  Call* = ref object
+    name*: string
+    arguments*: seq[MAtom]
+    references*: seq[MAtom]
+
+  OpKind* = enum
+    okCall
+    okRead
+    okWrite
+    okEnter
+    okGetField
+    okAdd
+    okSub
+    okMul
+    okDiv
+    okExit
+
+  Operation* = ref object
+    case kind*: OpKind
+    of okCall:
+      call*: Call
+    of okRead:
+      rname*: string
+    of okWrite:
+      wname*: string
+      value*: MAtom
+    of okEnter:
+      enter*: string
+    of okExit:
+      exit*: string
+    of okGetField:
+      field*: string
+    of okAdd, okSub, okMul, okDiv:
+      arithmetics*: seq[MAtom] ## refs
+      newIdx*: int
+
+proc hash*(ir: IR): Hash {.inline.} =
+  hash((ir.source, ir.warnings))
+
+proc hash*(op: Operation): Hash {.inline.} =
+  case op.kind
+  of okCall:
+    return hash((op.kind, op.call.name))
+  of okRead:
+    return hash((op.kind, op.rname))
+  of okWrite:
+    return hash((op.kind, op.wname))
+  of okEnter:
+    return hash((op.kind, op.enter))
+  of okExit:
+    return hash((op.kind, op.exit))
+  of okGetField:
+    return hash((op.kind, op.field))
+  of okAdd, okSub, okMul, okDiv:
+    return hash((op.kind, op.newIdx))
 
 proc weakRefWarning*(msg, wref: string): Warning {.inline.} =
   Warning(

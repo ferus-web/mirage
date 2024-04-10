@@ -1,63 +1,27 @@
 import std/[options, sequtils, sugar]
-import tokenizer, shared, clause, ../atom
+import tokenizer, shared, interpreter_type, builtins
+import errors/prelude
 import pretty
-
-type
-  RuntimeHalt* = object of Defect
-  Interpreter* = ref object
-    tokenizer*: Tokenizer
-    clauses*: seq[Clause]
-    clause*: Clause
-    stack*: seq[MAtom]
-
-{.push hint[XCannotRaiseY]: off, checks: off.}
-proc guard*(cond: bool, msg: string) {.raises: [RuntimeHalt], inline.} =
-  if not cond:
-    raise newException(
-      RuntimeHalt,
-      "Mirage interpreter encountered a HALT: " & $msg
-    )
-{.pop.}
-
-proc getOwnerClause*(interpreter: Interpreter, idx: int): Option[Clause] {.inline.} =
-  for clause in interpreter.clauses:
-    if idx in clause.stackClosure:
-      return some clause
-
-proc load*(interpreter: Interpreter, source: string) {.inline.} =
-  interpreter.tokenizer = newTokenizer(source)
 
 proc call*(interpreter: Interpreter, token: Token)
 
-{.push checks: off.}
-proc resolveRef*(interpreter: Interpreter, idx: int): MAtom {.inline.} =
-  guard(idx < interpreter.stack.len and idx >= 0, "Attempt to get atom outside of stack")
-  let atom = interpreter.stack[idx]
+proc arithmeticOpGetArgs(interpreter: Interpreter, nums: var seq[MAtom], pos: var int) {.inline.} =
+  for tok in interpreter.tokenizer.flow():
+    var next: Option[Token]
 
-  proc findInt(begin: MAtom): MAtom =
-    if begin.kind == Ref:
-      print begin
-      guard(begin.reference.isSome, "Weak references can't be resolved yet")
-      return interpreter
-        .resolveRef(
-          begin
-            .reference
-            .unsafeGet()
-        )
-    
-    if begin.kind == Integer:
-      return begin
+    if not interpreter.tokenizer.isEof():
+      let cTokenizer = deepCopy(interpreter.tokenizer)
+      next = cTokenizer.maybeNext()
 
-    guard(false, "findInt() failed; no integer atom could be found recursively.")
-
-  findInt(atom)
-{.pop.}
-
-proc grow*(interpreter: Interpreter, idx: int) {.inline.} =
-  let final = idx + 1
-
-  guard(final > interpreter.stack.len, "Attempt to shrink stack using `grow()`")
-  interpreter.stack.setLen(final)
+    if tok.kind == tkInteger and 
+      next.isSome and
+      next.unsafeGet().kind == tkInteger:
+      nums.add(
+        interpreter.resolveRef(tok.integer)
+      )
+    else:
+      pos = tok.integer
+      break
 
 proc execute*(interpreter: Interpreter, token: Token) =
   guard(token.kind == tkOperation, "execute() got non-operation token!")
@@ -118,30 +82,59 @@ proc execute*(interpreter: Interpreter, token: Token) =
       accumulator: int
       pos: int
 
-    for tok in interpreter.tokenizer.flow():
-      var next: Option[Token]
+    arithmeticOpGetArgs(interpreter, nums, pos)
 
-      if not interpreter.tokenizer.isEof():
-        let cTokenizer = deepCopy(interpreter.tokenizer)
-        next = cTokenizer.maybeNext()
-
-      if tok.kind == tkInteger and 
-        next.isSome and
-        next.unsafeGet().kind == tkInteger:
-        nums.add(
-          interpreter.resolveRef(tok.integer)
+    for i, num in nums:
+      # guard(num.kind == Integer, "Can't add non-ints for now") # TODO: replace with interpreter based errors
+      if num.kind != Integer:
+        interpreter.newTypeError(
+          "Argument " & $i,
+          Integer, num.kind
         )
-      else:
-        pos = tok.integer
-        break
-    
-    for num in nums:
-      guard(num.kind == Integer, "Can't add non-ints for now") # TODO: replace with interpreter based errors
-      
+
       accumulator += num
         .getInt()
         .unsafeGet()
 
+    interpreter.grow(pos)
+    interpreter.stack[pos] = integer accumulator
+  of Mult:
+    var
+      nums: seq[MAtom]
+      accumulator = 1
+      pos: int
+
+    arithmeticOpGetArgs(interpreter, nums, pos)
+
+    for num in nums:
+      guard(num.kind == Integer, "Can't multiply non-ints for now") # TODO: replace with interpreter based errors
+      accumulator *= num
+        .getInt()
+        .unsafeGet()
+
+    interpreter.grow(pos)
+    interpreter.stack[pos] = integer accumulator
+  of Sub:
+    var
+      nums: seq[MAtom]
+      accumulator, pos: int
+      loop: int
+
+    arithmeticOpGetArgs(interpreter, nums, pos)
+    
+    while loop < nums.len - 1:
+      let 
+        left = nums[loop]
+        right = if loop + 1 < nums.len: nums[loop + 1] else: integer 0
+
+      guard(left.kind == Integer, "Can't subtract non-ints for now") # TODO: replace with interpreter based errors
+      guard(right.kind == Integer, "Can't subtract non-ints for now")
+
+      accumulator +=
+        left.getInt().unsafeGet() - right.getInt().unsafeGet()
+
+      inc loop
+    
     interpreter.grow(pos)
     interpreter.stack[pos] = integer accumulator
   else: discard
@@ -171,10 +164,7 @@ proc call*(interpreter: Interpreter, token: Token) =
 
   case fn.unsafeGet().ident
   of "print":
-    for arg in args:
-      arg
-        .crush("", false)
-        .echo()
+    builtins.print(interpreter, args)
 
 proc exit*(interpreter: Interpreter, token: Token) {.inline.} =
   guard(interpreter.clause.name == token.endClause, "Interpreter current clause name and token's clause name are different!")
