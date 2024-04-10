@@ -44,6 +44,34 @@ generator.add(
   ]
 )
 
+generator.mult(
+  @[
+    generator.reference("very_useful_value"),
+    generator.reference("thing")
+  ]
+)
+
+generator.sub(
+  @[
+    generator.reference("very_useful_value"),
+    generator.reference("thing")
+  ]
+)
+
+generator.call(
+  "print",
+  args = @[
+    strongRef 10    # Prints out 1369 to stdout
+  ]
+)
+
+generator.call(
+  "print",
+  args = @[
+    strongRef 11
+  ]
+)
+
 generator.exit("main")
 
 # Pass 1: basic optimizations (if enabled)
