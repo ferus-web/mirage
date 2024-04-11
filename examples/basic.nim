@@ -54,7 +54,7 @@ generator.mult(
 generator.sub(
   @[
     generator.reference("very_useful_value"),
-    generator.reference("thing")
+    generator.reference("hello")
   ]
 )
 
@@ -73,6 +73,15 @@ generator.call(
 )
 
 generator.exit("main")
+
+generator.enter("other_clause")
+generator.call(
+  "print",
+  args = @[
+    strongRef 10
+  ]
+)
+generator.exit("other_clause")
 
 # Pass 1: basic optimizations (if enabled)
 generator.compute()
