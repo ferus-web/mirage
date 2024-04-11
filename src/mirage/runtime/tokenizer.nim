@@ -257,7 +257,7 @@ proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
   of '#':
     tokenizer.forwards(2)
     return tokenizer.consumeComment()
-  of {'A'..'Z'}, {'a'..'z'}:
+  of {'A'..'Z'}, {'a'..'z'}, '_':
     return tokenizer.consumeCharacterBasedToken()
   of '\r', ' ', '\0', '\\':
     tokenizer.forwards(1)
