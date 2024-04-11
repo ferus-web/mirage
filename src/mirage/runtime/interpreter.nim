@@ -40,6 +40,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     interpreter.stack.setLen(pos.unsafeGet().integer + 1'i32)
 
     interpreter.stack[pos.unsafeGet().integer] = atom
+    interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
   of LoadStr:
     let
       pos = interpreter.tokenizer.maybeNext()
@@ -52,6 +53,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     let atom = str value.unsafeGet().str
     interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
+    interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
   of LoadRef:
     let
       pos = interpreter.tokenizer.maybeNext()
@@ -74,6 +76,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     
     interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
+    interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
   of Call:
     interpreter.call(token)
   of Add:
@@ -126,9 +129,20 @@ proc execute*(interpreter: Interpreter, token: Token) =
       let 
         left = nums[loop]
         right = if loop + 1 < nums.len: nums[loop + 1] else: integer 0
+      
+      if left.kind != Integer:
+        interpreter.newTypeError(
+          "Left",
+          Integer, left.kind
+        )
+        return
 
-      guard(left.kind == Integer, "Can't subtract non-ints for now") # TODO: replace with interpreter based errors
-      guard(right.kind == Integer, "Can't subtract non-ints for now")
+      if right.kind != Integer:
+        interpreter.newTypeError(
+          "Right",
+          Integer, right.kind
+        )
+        return
 
       accumulator +=
         left.getInt().unsafeGet() - right.getInt().unsafeGet()
@@ -138,6 +152,38 @@ proc execute*(interpreter: Interpreter, token: Token) =
     interpreter.grow(pos)
     interpreter.stack[pos] = integer accumulator
   else: discard
+
+proc verifyClosureOwnership*(
+  interpreter: Interpreter, 
+  idx: Option[int] = none(int), 
+  refatom: Option[MAtom] = none(MAtom)
+): tuple[owns: bool, owner: Option[Clause]] =
+  if idx.isSome:
+    result.owns = idx.unsafeGet() in interpreter.clause.stackClosure
+
+    if not result.owns:
+      for _, clause in interpreter.clauses:
+        if idx.unsafeGet() in clause.stackClosure:
+          result.owner = some clause
+
+      guard(result.owner.isSome, "Cannot find clause closure owner of stack index " & $idx.unsafeGet())
+  elif refatom.isSome:
+    proc find(a: MAtom, stack: seq[MAtom]): int {.inline.} =
+      if a.kind == Ref:
+        find(stack[a.reference.get()], stack)
+      else:
+        stack.find(a)
+
+    let resolved = find(refatom.unsafeGet(), interpreter.stack)
+
+    result.owns = resolved in interpreter.clause.stackClosure
+
+    if not result.owns:
+      for _, clause in interpreter.clauses:
+        if resolved in clause.stackClosure:
+          result.owner = some clause
+
+      guard(result.owner.isSome, "Cannot find clause closure owner of stack index " & $resolved)
 
 proc enter*(interpreter: Interpreter, token: Token) {.inline.} =
   interpreter.clause = Clause(
@@ -152,6 +198,19 @@ proc call*(interpreter: Interpreter, token: Token) =
 
   for aTok in interpreter.tokenizer.flow(includeWhitespace = true):
     if aTok.kind == tkInteger:
+      let 
+        refatom = interpreter.stack[aTok.integer]
+        (owns, owner) = if refatom.kind == Ref:
+          interpreter.verifyClosureOwnership(refatom = some(refatom))
+        else:
+          interpreter.verifyClosureOwnership(idx = some(aTok.integer.int))
+
+      if not owns:
+        interpreter.newClosureError(
+          aTok.integer, interpreter.clause, owner.unsafeGet()
+        )
+        return
+      
       args.add(interpreter.stack[aTok.integer])
     else:
       if aTok.kind == tkWhitespace and '\n' in aTok.whitespace:
@@ -168,6 +227,7 @@ proc call*(interpreter: Interpreter, token: Token) =
 
 proc exit*(interpreter: Interpreter, token: Token) {.inline.} =
   guard(interpreter.clause.name == token.endClause, "Interpreter current clause name and token's clause name are different!")
+  echo "we exited the clause frfr"
   interpreter.clause.reset()
 
 proc run*(interpreter: Interpreter) =
