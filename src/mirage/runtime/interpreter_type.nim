@@ -1,6 +1,6 @@
 ## Thank you araq, very cool.
 import std/[options]
-import clause, ../atom, tokenizer, errors/base
+import clause, ../atom, tokenizer, errors/base, gc/cell
 
 type
   RuntimeHalt* = object of Defect
@@ -10,6 +10,21 @@ type
     clause*: Clause
     stack*: seq[MAtom]
     errors*: seq[RuntimeError]
+
+    loopConditions*: Option[seq[EquatoryOperation]]
+    insideLoop*: bool
+
+  EquationKind* = enum
+    ekEquate = 0
+    ekNotEquate = 1
+
+  EquatoryOperation* = ref object
+    kind*: EquationKind
+    indexes*: seq[int32]
+
+  Arena* = ref object
+    interpreter*: Interpreter
+    cells*: seq[Cell]
 
 {.push hint[XCannotRaiseY]: off, checks: off.}
 proc guard*(cond: bool, msg: string) {.raises: [RuntimeHalt], inline.} =
@@ -30,6 +45,10 @@ proc getOwnerClause*(interpreter: Interpreter, idx: int): Option[Clause] {.inlin
 
 proc load*(interpreter: Interpreter, source: string) {.inline.} =
   interpreter.tokenizer = newTokenizer(source)
+
+proc get*(interpreter: Interpreter, idx: int): Option[MAtom] {.inline.} =
+  if idx < interpreter.stack.len and idx >= 0:
+    return interpreter.stack[idx].some()
 
 {.push checks: off.}
 proc resolveRef*(interpreter: Interpreter, idx: int): MAtom {.inline.} =
@@ -54,7 +73,7 @@ proc resolveRef*(interpreter: Interpreter, idx: int): MAtom {.inline.} =
 proc grow*(interpreter: Interpreter, idx: int) {.inline.} =
   let final = idx + 1
 
-  guard(final > interpreter.stack.len, "Attempt to shrink stack using `grow()`")
+  # guard(final > interpreter.stack.len, "Attempt to shrink stack using `grow()`")
   interpreter.stack.setLen(final)
 
 export clause, atom

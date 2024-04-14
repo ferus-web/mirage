@@ -51,6 +51,21 @@ generator.mult(
   ]
 )
 
+generator.loop(
+  conditions = @[
+    generator.equate(@["very_useful_value", "very_useful_value"])
+  ]
+)
+
+generator.call(
+  "print",
+  args = @[
+    strongRef 0
+  ]
+)
+
+generator.loopEnd()
+
 generator.sub(
   @[
     generator.reference("very_useful_value"),
@@ -75,12 +90,9 @@ generator.call(
 generator.exit("main")
 
 generator.enter("other_clause")
-generator.call(
-  "print",
-  args = @[
-    strongRef 10
-  ]
-)
+
+generator.write(name = "ewdjfjbefj", atom = str "haha")
+
 generator.exit("other_clause")
 
 # Pass 1: basic optimizations (if enabled)

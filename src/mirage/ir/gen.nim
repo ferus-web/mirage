@@ -172,6 +172,18 @@ proc generateIR*(gen: CodeGenerator): IR =
 
       add ops & $(gen.stack.len - 1)
       gen.stack.setLen(gen.stack.len + 1)
+    of okEquate:
+      var ops = "EQUATE "
+      for i, eq in op.eqRefs:
+        ops &= $eq.reference.get() & ' '
+
+      add ops
+    of okLoopConditions:
+      add "LOOP_CONDITIONS"
+    of okLoopBody:
+      add "LOOP_BODY"
+    of okLoopEnd:
+      add "LOOP_END"
     else:
       discard
 
@@ -224,17 +236,18 @@ proc mult*(gen: CodeGenerator, refs: seq[MAtom]) {.inline.} =
     )
   )
 
-proc reference*(gen: CodeGenerator, name: string): MAtom {.inline.} =
+proc reference*(gen: CodeGenerator, name: string, write: bool = true): MAtom {.inline.} =
   if name in gen.register:
     for idx, _ in gen.stack:
       if gen.register[name] == idx:
         let reference = strongRef idx
-        gen.write(atom = reference)
+
+        if write: gen.write(atom = reference)
         return reference
   
   # Couldn't find in stack - find it later (or throw an error)
   let reference = weakRef name
-  gen.write(atom = reference)
+  if write: gen.write(atom = reference)
 
   reference
 
@@ -251,6 +264,43 @@ proc call*(gen: CodeGenerator, name: string, args: seq[MAtom] = @[], refs: seq[M
         arguments: args,
         references: refs
       )
+    )
+  )
+
+proc equate*(gen: CodeGenerator, refs: seq[string]): Operation {.inline.} =
+  var atoms: seq[MAtom]
+
+  for i, reference in refs:
+    atoms.add(gen.reference(reference, write = false))
+
+  Operation(
+    kind: okEquate,
+    eqRefs: atoms
+  )
+
+proc loopEnd*(gen: CodeGenerator) {.inline.} =
+  gen.operations.add(
+    Operation(
+      kind: okLoopEnd
+    )
+  )
+
+proc loop*(gen: CodeGenerator, conditions: seq[Operation]) =
+  gen.operations.add(
+    Operation(
+      kind: okLoopConditions
+    )
+  )
+
+  for cond in conditions:
+    if cond.kind notin [okEquate]:
+      raise newException(ValueError, "Attempt to add non-equatory operation as condition for a loop.")
+
+    gen.operations.add(cond)
+
+  gen.operations.add(
+    Operation(
+      kind: okLoopBody
     )
   )
 

@@ -226,7 +226,7 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
     tokenizer.forwards(1)
 
     case c
-    of {'a'..'z'}, {'A'..'Z'}:
+    of {'a'..'z'}, {'A'..'Z'}, '_':
       content &= c
     of Whitespace, '\0':
       break

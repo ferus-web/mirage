@@ -46,6 +46,10 @@ type
     Div = "DIV"
     Sub = "SUB"
 
+    LoopConditions = "LOOP_CONDITIONS"
+    LoopBody = "LOOP_BODY"
+    LoopEnd = "LOOP_END"
+
 proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
   case op
   of "CALL":
@@ -66,11 +70,17 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
     Mult
   of "DIV":
     Div
+  of "LOOP_CONDITIONS":
+    LoopConditions
+  of "LOOP_BODY":
+    LoopBody
+  of "LOOP_END":
+    LoopEnd
   else:
     raise newException(ValueError, "Invalid operation: " & op)
 
 const
   KNOWN_OPS* = [
     "CALL", "LOADI", "LOADL", "LOADS", "LOADR",
-    "ADD", "SUB", "MULT", "DIV"
+    "ADD", "SUB", "MULT", "DIV", "LOOP_CONDITIONS", "LOOP_BODY", "LOOP_END"
   ]

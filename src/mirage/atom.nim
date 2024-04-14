@@ -23,6 +23,38 @@ type
 
   MAtomSeq* = distinct seq[MAtom]
 
+#[
+proc `=copy`*(dest: var MAtom, src: MAtom) =
+  `=destroy`(dest)
+  wasMoved dest
+
+  dest.kind = src.kind
+  case src.kind
+  of String:
+    dest.str = cast[string](alloc(sizeof src.str))
+    for i, elem in 0..<dest.str.len:
+      dest.str[i] = elem
+  of Integer:
+    var ival = cast[ptr int](alloc(sizeof int))
+    ival[] = src.integer
+
+    dest.integer = ival
+  of Sequence:
+    dest.sequence = cast[seq[MAtom]](alloc(sizeof src.sequence))
+
+    for i, elem in src.sequence:
+      dest.sequence[i] = elem
+  of Ref:
+    var sval = cast[string](alloc(sizeof str.link))
+    
+    for i, elem in src.link:
+      sval[i] = src.link[i]
+
+    dest.reference = deepCopy(src.reference)
+    dest.link = sval
+  of Null: discard
+]#
+
 proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
   case atom.kind
   of String:

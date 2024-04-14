@@ -37,6 +37,10 @@ type
     okSub
     okMul
     okDiv
+    okEquate
+    okLoopConditions
+    okLoopBody
+    okLoopEnd
     okExit
 
   Operation* = ref object
@@ -57,6 +61,9 @@ type
     of okAdd, okSub, okMul, okDiv:
       arithmetics*: seq[MAtom] ## refs
       newIdx*: int
+    of okEquate:
+      eqRefs*: seq[MAtom]
+    of okLoopBody, okLoopEnd, okLoopConditions: discard
 
 proc hash*(ir: IR): Hash {.inline.} =
   hash((ir.source, ir.warnings))
@@ -77,6 +84,8 @@ proc hash*(op: Operation): Hash {.inline.} =
     return hash((op.kind, op.field))
   of okAdd, okSub, okMul, okDiv:
     return hash((op.kind, op.newIdx))
+  else:
+    return hash((op.kind))
 
 proc weakRefWarning*(msg, wref: string): Warning {.inline.} =
   Warning(

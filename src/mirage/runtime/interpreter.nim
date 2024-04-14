@@ -1,6 +1,6 @@
-import std/[options, sequtils, sugar]
+import std/[options, sequtils, strutils, sugar]
 import tokenizer, shared, interpreter_type, builtins
-import errors/prelude
+import errors/prelude, gc/arena, equatory_ops
 import pretty
 
 proc call*(interpreter: Interpreter, token: Token)
@@ -25,7 +25,7 @@ proc arithmeticOpGetArgs(interpreter: Interpreter, nums: var seq[MAtom], pos: va
 
 proc execute*(interpreter: Interpreter, token: Token) =
   guard(token.kind == tkOperation, "execute() got non-operation token!")
-  
+
   case toOp(token.op)
   of LoadInt:
     let
@@ -41,6 +41,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
 
     interpreter.stack[pos.unsafeGet().integer] = atom
     interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
+    # interpreter.arena.addCell(pos.unsafeGet().integer)
   of LoadStr:
     let
       pos = interpreter.tokenizer.maybeNext()
@@ -54,6 +55,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
     interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
+    # interpreter.arena.addCell(pos.unsafeGet().integer)
   of LoadRef:
     let
       pos = interpreter.tokenizer.maybeNext()
@@ -77,6 +79,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
     interpreter.grow(pos.unsafeGet().integer)
     interpreter.stack[pos.unsafeGet().integer] = atom
     interpreter.clause.stackClosure.add(pos.unsafeGet().integer)
+    # interpreter.arena.addCell(pos.unsafeGet().integer)
   of Call:
     interpreter.call(token)
   of Add:
@@ -101,6 +104,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
 
     interpreter.grow(pos)
     interpreter.stack[pos] = integer accumulator
+    # interpreter.arena.addCell(pos)
   of Mult:
     var
       nums: seq[MAtom]
@@ -116,7 +120,7 @@ proc execute*(interpreter: Interpreter, token: Token) =
         .unsafeGet()
 
     interpreter.grow(pos)
-    interpreter.stack[pos] = integer accumulator
+    # interpreter.stack[pos] = integer accumulator
   of Sub:
     var
       nums: seq[MAtom]
@@ -151,7 +155,32 @@ proc execute*(interpreter: Interpreter, token: Token) =
     
     interpreter.grow(pos)
     interpreter.stack[pos] = integer accumulator
+    # interpreter.arena.addCell(pos)
+  of LoopConditions:
+    var equations: seq[EquatoryOperation]
+
+    for tok in interpreter.tokenizer.flow():
+      if tok.kind == tkIdent and 
+        tok.ident.toLowerAscii() in ["equate", "nequate"]:
+        equations.add(equationFromToken(tok, interpreter.tokenizer))
+
+      if tok.kind == tkWhitespace:
+        break
+
+    interpreter.loopConditions = some(equations)
+  of LoopBody:
+    guard(interpreter.loopConditions.isSome, "Cannot enter loop body if conditions aren't specified!")
+    for equation in interpreter.loopConditions.unsafeGet():
+      if not equation.solve(interpreter):
+        # equation failed, no need to execute
+        return
+    
+    # All instructions will now check the loopConditions equations before execution
+    interpreter.insideLoop = true
   else: discard
+  
+  # Trigger minor GC collection after each instruction
+  # interpreter.arena.minorCollect()
 
 proc verifyClosureOwnership*(
   interpreter: Interpreter, 
@@ -227,23 +256,46 @@ proc call*(interpreter: Interpreter, token: Token) =
 
 proc exit*(interpreter: Interpreter, token: Token) {.inline.} =
   guard(interpreter.clause.name == token.endClause, "Interpreter current clause name and token's clause name are different!")
-  echo "we exited the clause frfr"
   interpreter.clause.reset()
 
+proc step*(interpreter: Interpreter, token: Token) {.inline.} =
+  case token.kind
+  of tkOperation:
+    interpreter.execute(token)
+  of tkClause:
+    interpreter.enter(token)
+  of tkEnd:
+    interpreter.exit(token)
+  else: discard
+
 proc run*(interpreter: Interpreter) =
-  for token in interpreter.tokenizer.flow():
-    case token.kind
-    of tkOperation:
-      interpreter.execute(token)
-    of tkClause:
-      interpreter.enter(token)
-    of tkEnd:
-      interpreter.exit(token)
-    else: discard
+  if not interpreter.insideLoop:
+    for token in interpreter.tokenizer.flow():
+      interpreter.step(token)
+  else:
+    while interpreter
+      .loopConditions
+      .get()
+      .satisfied(interpreter):
+      var
+        iterationDone = false
+        loopCopied = deepCopy(interpreter)
+
+      for token in interpreter.tokenizer.flow():
+        if token.kind == tkOperation and token.op.toLowerAscii() == "loop_end":
+          iterationDone = true
+          break
+
+        loopCopied.step(token)
+
+      if iterationDone:
+        break
 
   print interpreter
 
 proc newInterpreter*(source: string): Interpreter {.inline.} =
-  Interpreter(
+  var interp = Interpreter(
     tokenizer: newTokenizer(source)
   )
+
+  interp
