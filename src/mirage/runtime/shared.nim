@@ -1,4 +1,4 @@
-import ../atom, clause
+import ../atom
 
 type
   TokenKind* = enum
@@ -36,19 +36,44 @@ type
       endClause*: string
   
   Ops* = enum
+    ## Call a function.
+    ## Arguments:
+    ## `name`: Ident -  name of the function or builtin
+    ## `...`: Integers - stack indexes as arguments
     Call = "CALL"
+
+    ## Load an integer onto the stack
+    ## Arguments:
+    ## `idx`: Integer - stack index
+    ## `value`: Integer - int value
     LoadInt = "LOADI"
-    LoadList = "LOADL"
+
+    ## Load a string onto the stack
+    ## Arguments:
+    ## `idx`: Integer - stack index
+    ## `value`: string - str value
     LoadStr = "LOADS"
-    LoadRef = "LOADR"
+
+    ## Jump to an operation in the current clause
+    ## Arguments:
+    ## `idx`: Integer - operation ID
+    Jump = "JUMP"
+
     Add = "ADD"
     Mult = "MULT"
     Div = "DIV"
     Sub = "SUB"
 
-    LoopConditions = "LOOP_CONDITIONS"
-    LoopBody = "LOOP_BODY"
-    LoopEnd = "LOOP_END"
+    ## Executes the line after this instruction if the condition is true, otherwise the line after that line.
+    ## Wherever the line is, execution continues from there on.
+    ## Arguments:
+    ## `...`: Integer - indexes on the stack
+    Equate = "EQU"
+
+    ## Do not execute any more lines after this, signifying an end to a clause.
+    ## Arguments:
+    ## value: Integer - a return value, can be Null
+    Return = "RETURN"
 
 proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
   case op
@@ -58,10 +83,6 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
     LoadInt
   of "LOADS":
     LoadStr
-  of "LOADL":
-    LoadList
-  of "LOADR":
-    LoadRef
   of "ADD":
     Add
   of "SUB":
@@ -70,17 +91,17 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
     Mult
   of "DIV":
     Div
-  of "LOOP_CONDITIONS":
-    LoopConditions
-  of "LOOP_BODY":
-    LoopBody
-  of "LOOP_END":
-    LoopEnd
+  of "JUMP":
+    Jump
+  of "RETURN":
+    Return
+  of "EQU":
+    Equate
   else:
     raise newException(ValueError, "Invalid operation: " & op)
 
 const
   KNOWN_OPS* = [
-    "CALL", "LOADI", "LOADL", "LOADS", "LOADR",
-    "ADD", "SUB", "MULT", "DIV", "LOOP_CONDITIONS", "LOOP_BODY", "LOOP_END"
+    "CALL", "LOADI", "LOADS",
+    "ADD", "SUB", "MULT", "DIV", "JUMP", "EQU", "RETURN"
   ]

@@ -17,5 +17,4 @@ import pretty
 proc commit*(graph: GCGraph, interpreter: Interpreter) =
   for removal in graph.removes:
     let idx = removal.index
-    guard(idx >= 0 and idx < interpreter.stack.len, "GC Graph cannot remove cell with index " & $idx)
     interpreter.stack[idx] = MAtom(kind: Null) # we're still using 1 byte, is that fine? :P
