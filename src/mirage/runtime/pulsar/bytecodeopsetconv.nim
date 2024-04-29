@@ -1,43 +1,27 @@
-import std/[options]
+import std/[options, strutils]
 import ../[shared, tokenizer], operation
 import ../../utils
 import pretty
 
-proc nextOperation*(tokenizer: var Tokenizer): Option[Operation] {.inline.} =
-  var 
-    op = Operation()
-    dtok = deepCopy(tokenizer)
+proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
+  discard dtok.consumeWhitespace()
 
-  let opIdx = dtok.maybeNextExcludingWhitespace()
+  var op = Operation()
+  let opIdx = dtok.nextExcludingWhitespace()
   
-  if not *opIdx or (&opIdx).kind != tkInteger:
-    return
-  
-  op.index = (&opIdx).integer.uint64
+  op.index = opIdx.integer.uint64
 
-  let opIdent = dtok.maybeNextExcludingWhitespace()
+  let opCode = dtok.nextExcludingWhitespace()
 
-  if not *opIdent or (&opIdent).kind != tkOperation:
-    return
-
-  try:
-    op.opcode = toOp(
-      (&opIdent).op
-    )
-  except ValueError:
-    return
+  op.opcode = toOp(opCode.op)
 
   while not dtok.isEof():
-    let arg = dtok.maybeNextExcludingWhitespace()
+    let arg = dtok.next()
 
-    if not *arg:
-      return some op
-    
-    if (&arg).kind notin [tkQuotedString, tkInteger]:
-      return some op
+    if arg.kind in [tkQuotedString, tkInteger, tkIdent]:
+      op.rawArgs.add(arg)
+      continue
 
-    op.rawArgs.add(&arg)
-  
-  tokenizer = dtok
+    break
 
   some op

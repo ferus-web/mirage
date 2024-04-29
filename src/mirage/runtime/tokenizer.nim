@@ -4,6 +4,7 @@
 import std/[options, strutils, math]
 import ../utils
 import shared
+import pretty
 
 type
   TokenizerDefect* = object of Defect
@@ -293,11 +294,13 @@ proc maybeNext*(tokenizer: Tokenizer): Option[Token] {.inline.} =
     return some tokenizer.next()
 
 proc maybeNextExcludingWhitespace*(tokenizer: Tokenizer): Option[Token] {.inline.} =
-  if not tokenizer.isEof():
-    let nt = next tokenizer
+  var next = next tokenizer
 
-    if nt.kind != tkWhitespace:
-      return some nt
+  while not tokenizer.isEof() and next.kind == tkWhitespace:
+    next = next tokenizer
+
+  if next.kind != tkWhitespace:
+    return some next
 
 iterator flow*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token {.inline.} =
   while not tokenizer.isEof():

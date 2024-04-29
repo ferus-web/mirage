@@ -23,13 +23,11 @@ proc getClause*(interpreter: PulsarInterpreter): Option[Clause] {.inline.} =
     none Clause
 
 proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
-  var cTok = deepCopy(interpreter.tokenizer)
+  var cTok = interpreter.tokenizer.deepCopy()
   while not interpreter.tokenizer.isEof:
-    var clause = interpreter.getClause()
-    let tok = cTok.maybeNext()
-
-    if interpreter.tokenizer.pos == 15 and *tok:
-      print &tok
+    let 
+      clause = interpreter.getClause()
+      tok = cTok.maybeNext()
 
     if *tok and (&tok).kind == tkClause and 
       not *clause:
@@ -42,26 +40,19 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
       )
       interpreter.tokenizer.pos = cTok.pos
       continue
+ 
+    let op = nextOperation interpreter.tokenizer
+
+    if *clause and *op:
+      interpreter.clauses[interpreter.currClause].operations.add(&op)
+      cTok.pos = interpreter.tokenizer.pos
+      continue
 
     if *tok and (&tok).kind == tkEnd and
       *clause:
       interpreter.currClause = -1
-      continue
-    
-    let op = nextOperation interpreter.tokenizer
-    
-    if *op: 
-      let x = &op
-
-      if x.index == 1:
-        print *clause
-
-      print x
-
-    if *clause and *op: 
-      interpreter.clauses[interpreter.currClause].operations.add(&op)
       interpreter.tokenizer.pos = cTok.pos
-      print interpreter.tokenizer
+      continue
 
 proc newPulsarInterpreter*(source: string): PulsarInterpreter {.inline.} =
   PulsarInterpreter(
