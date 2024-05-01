@@ -1,19 +1,43 @@
+import ../../../atom
+
 type
+  EmptyCellError* = object of Defect
   Cell* = object
-    index*: int
-    references*: uint
-    survived*: uint64
+    data: pointer
+    id*: uint       # id on stack
+    empty: bool = true
 
-const
-  OldCellThreshold* {.intdefine: "MirageGCOldCellThreshold".} = 4
+    refcount: uint
+    refs*: seq[uint] # references to other cells on the stack
 
-proc old*(cell: Cell): bool {.inline.} =
-  cell.survived > OldCellThreshold
+proc `!`*(cell: Cell): bool {.inline.} =
+  cell.data == nil
 
-proc `$`*(cell: Cell): string =
-  var s = "Mirage GC Cell"
-  s &= "\nPoints to Stack Index: " & $cell.index
-  s &= "\nAlive References: " & $cell.references
-  s &= "\nSurvived Sweeps: " & $cell.survived
+proc `=destroy`(cell: var Cell) {.inline, nimcall.} =
+  cell.data = nil
 
-  s
+proc addRef*(refered, referer: var Cell) {.inline.} =
+  referer.refs.add(refered.id)
+  inc refered.refcount
+
+proc deref*(refered, referer: var Cell) {.inline.} =
+  dec refered.refcount
+  referer.refs.del(referer.refs.find(refered.id))
+
+proc get*(cell: Cell): MAtom {.inline.} =
+  if !cell:
+    raise newException(
+      EmptyCellError,
+      "Attempt to get data from empty cell."
+    )
+
+  cast[MAtom](cell.data)
+
+proc newCell*(atom: MAtom, refcount: uint = 1): Cell {.inline.} =
+  Cell(
+    data: cast[pointer](atom),
+    empty: false,
+    refcount: refcount
+  )
+
+export atom

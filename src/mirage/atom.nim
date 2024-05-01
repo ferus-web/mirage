@@ -1,12 +1,12 @@
-import std/options
+import std/[hashes, options]
 
 type
   MAtomKind* = enum
-    String
-    Integer
-    Sequence
-    Ref
-    Null
+    Null = 0
+    String = 1
+    Integer = 2
+    Sequence = 3
+    Ref = 4
 
   MAtom* = ref object
     case kind*: MAtomKind
@@ -54,6 +54,18 @@ proc `=copy`*(dest: var MAtom, src: MAtom) =
     dest.link = sval
   of Null: discard
 ]#
+
+proc hash*(atom: MAtom): Hash {.inline.} =
+  var h: Hash = 0
+
+  case atom.kind
+  of String:
+    h = h !& atom.str.hash()
+  of Integer:
+    h = h !& atom.integer
+  else: discard
+
+  !$h
 
 proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
   case atom.kind

@@ -1,22 +1,24 @@
 # MIR Operations
 
-## Load type functions
+## Load/write type functions
 ### LOADI (load integer)
-**Arguments**: `stack_position value`
+Loads an integer onto the stack position provided. \
+**Arguments**: `<stack_position> <value>`
 
 ### LOADS (load string)
-**Arguments**: `stack_position value`
+Loads a string onto the stack position provided. \
+**Arguments**: `<stack_position> <value>`
 
-### LOADL (load list)
-**Arguments**: `stack_position value`
-
-### LOADR (load reference)
-**Arguments**: `stack_position value`
-
-## Misc
+## Misc Functions
 ### CALL (call function)
-**Arguments**: `fn_name arguments`
+Calls a built-in function or clause. \
+**Arguments**: `<fn_name> <arguments>`
 
-## Arithmetic
-### ADD
-**Arguments**: `arguments stack_position`
+## Logical Functions
+### EQU (equate)
+Executes the next operation if the two values on the stack are true, otherwise skips to the line after that one. \
+**Arguments**: `<stack positions>`
+
+### JUMP (jump)
+Jumps to an operation number inside the current clause.
+**Arguments**: `<operation number>`

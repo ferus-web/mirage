@@ -1,82 +1,49 @@
-import ./[cell, graph], ../interpreter_type,
-       ../../atom
+import std/options
+import ./[cell],
+       ../../../atom
 
-proc addAliveRef*(arena: Arena, stackIndex: int) {.inline.} =
-  for i, _ in arena.cells:
-    var cell = arena.cells[i]
+type
+  ArenaKind* = enum
+    akNewest = 0
+    akNew = 1
+    akOld = 2
 
-    if cell.index != stackIndex:
-      continue
+  Arena* = object # We can't let the arena be a refcounted object otherwise that causes silly stuff to happen
+    kind*: ArenaKind
+    cells*: seq[Cell]
 
-    inc cell.references
+proc `=destroy`*(arena: Arena) {.inline, nimcall.} =
+  `=destroy`(arena.cells)
 
-proc noLongerAliveRef*(arena: Arena, stackIndex: int) {.inline.} =
-  for i, _ in arena.cells:
-    var cell = arena.cells[i]
+proc evacuate*(source: Arena, target: var Arena) {.inline.} =
+  assert source.kind < target.kind, "Cannot evacuate cells from a higher arena to a lower one!"
+  ## "Evacuate" (aka sink) all cells from one arena to another
+  for cell in source.cells:
+    target.cells.add(cell)
 
-    if cell.index != stackIndex:
-      continue
+  # zero out the source
+  `=destroy`(source)
 
-    cell.references = 0'u64
+proc add*(arena: var Arena, cell: Cell) {.inline.} =
+  var adds = true
+  for i, c in arena.cells.deepCopy():
+    if c.id == cell.id:
+      arena.cells[i] = cell
+      adds = false
 
-proc removeAliveRef*(arena: Arena, stackIndex: int) {.inline.} =
-  for i, _ in arena.cells:
-    var cell = arena.cells[i]
+  if adds:
+    arena.cells.add(cell)
 
-    if cell.index != stackIndex:
-      continue
+proc purge*(arena: var Arena, id: uint) {.inline.} =
+  var i: int = -1
 
-    dec cell.references
-
-    arena.cells[i] = cell
-import pretty
-proc minorCollect*(arena: Arena) =
-  var 
-    graph = GCGraph()
-    deallocCells: seq[int]
-
-  for i, cell in deepCopy(arena.cells):
-    if cell.old():
-      continue
-
-    if cell.references < 1:
-      graph.removes.add(cell)
+  for c in arena.cells:
+    if c.id == id:
+      i = c.id.int
   
-  graph.commit(arena.interpreter)
-  
-  # delete cells who's stack references no longer exist
-  for i, de in deallocCells:
-    arena.cells.del(i + de)
+  arena.cells.del(i)
 
-  # promote survivor cells
-  for i, _ in arena.cells:
-    var promoted = arena.cells[i]
-    inc promoted.survived
-    arena.cells[i] = promoted
-
-proc addCell*(arena: Arena, stackIndex: int) {.inline.} =
-  arena.cells.add(
-    Cell(
-      index: stackIndex,
-      references: 1'u64,
-      survived: 0'u64
-    )
-  )
-
-proc synchronize*(arena: Arena) {.inline.} =
-  ## Synchronize all cells with the interpreter's stack
-  reset arena.cells
-  for i, _ in arena.interpreter.stack: 
-    arena.cells.add(
-      Cell(
-        index: i,
-        references: 0'u64,
-        survived: 0'u64
-      )
-    )
-
-proc newArena*(interpreter: Interpreter): Arena {.inline.} =
-  Arena(
-    interpreter: interpreter,
-    cells: @[]
-  )
+proc find*(arena: Arena, id: uint): Option[Cell] {.inline, gcsafe, noSideEffect.} =
+  for c in arena.cells:
+    if c.id == id:
+      return some c

@@ -8,6 +8,9 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
 
   var op = Operation()
   let opIdx = dtok.nextExcludingWhitespace()
+
+  if opIdx.kind != tkInteger:
+    return
   
   op.index = opIdx.integer.uint64
 
