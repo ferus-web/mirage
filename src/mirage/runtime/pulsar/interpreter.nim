@@ -1,8 +1,7 @@
-import std/[options]
+import std/[tables, options]
 import ../../[atom, utils]
 import ../[shared, tokenizer]
 import ./[operation, bytecodeopsetconv]
-import ./gc/[arena, cell]
 import pretty
 
 type
@@ -18,40 +17,24 @@ type
 
   PulsarInterpreter* = ref object
     tokenizer: Tokenizer
-    currClause: int = -1
+    currClause: int
     currIndex: uint = 1
     clauses: seq[Clause]
 
-    newestArena*, newArena*, oldArena*: Arena
+    stack*: TableRef[uint, MAtom]
 
 proc find*(clause: Clause, id: uint): Option[Operation] {.inline.} =
   for op in clause.operations:
     if op.index == id:
       return some op
 
-proc find*(interpreter: PulsarInterpreter, id: uint): Option[Cell] {.inline.} =
-  let newest = interpreter.newestArena.find(id)
-  if *newest:
-    return newest
-
-  let new = interpreter.newArena.find(id)
-  if *new:
-    return new
-
-  let old = interpreter.oldArena.find(id)
-  if *old:
-    return old
-
 proc get*(interpreter: PulsarInterpreter, id: uint): Option[MAtom] {.inline.} =
-  let cell = interpreter.find(id)
-
-  if *cell:
-    return some (&cell).get()
+  if interpreter.stack.contains(id):
+    return some interpreter.stack[id]
 
 proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Option[Clause] {.inline.} =
   let id = if *id: &id else: interpreter.currClause
-  if id <= interpreter.clauses.len-1 and 
-    id > -1:
+  if id <= interpreter.clauses.len-1 and id > -1:
     some(interpreter.clauses[id])
   else:
     none Clause
@@ -65,11 +48,6 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
 
     if *tok and (&tok).kind == tkClause and 
       not *clause:
-      if interpreter.currClause > 0:
-        inc interpreter.currClause
-      else:
-        interpreter.currClause += 2
-
       interpreter.clauses.add(
         Clause(
           name: (&tok).clause,
@@ -77,9 +55,10 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
           rollback: ClauseRollback()
         )
       )
+      interpreter.currClause = interpreter.clauses.len-1
       interpreter.tokenizer.pos = cTok.pos
       continue
- 
+    
     let op = nextOperation interpreter.tokenizer
 
     if *clause and *op:
@@ -89,14 +68,11 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
 
     if *tok and (&tok).kind == tkEnd and
       *clause:
-      interpreter.currClause = -1
       interpreter.tokenizer.pos = cTok.pos
       continue
 
-proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: int): Cell {.inline, discardable.} =
-  var cell = newCell(atom)
-  cell.id = id.uint
-  interpreter.newestArena.add(cell)
+proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) {.inline.} =
+  interpreter.stack[id] = atom
 
 proc resolve*(
   interpreter: PulsarInterpreter, 
@@ -132,13 +108,69 @@ proc resolve*(
   of Jump:
     op.arguments &=
       op.consume(Integer, "JUMP expects exactly one integer as an argument")
+  of AddInt, AddStr:
+    op.arguments &=
+      op.consume(Integer, "ADDI/ADDS expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "ADDI/ADDS expects an integer at position 2")
+  of SubInt:
+    op.arguments &=
+      op.consume(Integer, "SUBI expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "SUBI expects an integer at position 2")
+  of CastStr:
+    op.arguments &=
+      op.consume(Integer, "CASTS expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "CASTS expects an integer at position 2")
   else: discard
 
   op.rawArgs = mRawArgs
 
+proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
+  let 
+    a = interpreter.get(src)
+    b = interpreter.get(dest)
+
+  if not *a or not *b:
+    return
+
+  var 
+    satom = &a
+    datom = &b
+  
+  case satom.kind
+  of Integer:
+    let
+      n1 = &satom.getInt()
+      n2 = &datom.getInt()
+    
+    # FIXME: remove this dumb check with something more sensible
+    if n1 >= 4611686018427387904 or n2 >= 4611686018427387904:
+      return
+
+    var aiAtom = integer n1 + n2
+
+    interpreter.addAtom(
+      aiAtom,
+      src
+    )
+  of String:
+    let
+      n1 = &satom.getStr()
+      n2 = &datom.getStr()
+    
+    var asAtom = str n1 & n2
+
+    interpreter.addAtom(asAtom, src)
+  else:
+    echo satom.kind
+
 proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
   let oclause = interpreter.getClause()
-  print oclause
 
   if *oclause:
     var clause = &oclause
@@ -146,17 +178,26 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     clause.rollback.prev = interpreter.currIndex.int
     clause.rollback.index = op.index
 
+  when not defined(mirageNoJit):
+    inc op.called
+
   case op.opCode
   of LoadStr:
     interpreter.addAtom(
       op.arguments[1],
-      &op.arguments[0].getInt()
+      (&op.arguments[0].getInt()).uint
     )
     inc interpreter.currIndex
   of LoadInt:
     interpreter.addAtom(
       op.arguments[1],
-      &op.arguments[0].getInt()
+      (&op.arguments[0].getInt()).uint
+    )
+    inc interpreter.currIndex
+  of AddInt, AddStr:
+    interpreter.appendAtom(
+      (&op.arguments[0].getInt()).uint,
+      (&op.arguments[1].getInt()).uint
     )
     inc interpreter.currIndex
   of Equate:
@@ -210,6 +251,19 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
           echo (&val).crush("", quote = false)
 
     inc interpreter.currIndex
+  of CastStr:
+    let atom = interpreter.get((
+      &op.arguments[0].getInt()
+    ).uint)
+    
+    if not *atom:
+      inc interpreter.currIndex
+      return
+
+    interpreter.addAtom(
+      (&atom).toString(),
+      (&op.arguments[1].getInt()).uint
+    )
   else:
     inc interpreter.currIndex
 
@@ -232,7 +286,5 @@ proc newPulsarInterpreter*(source: string): PulsarInterpreter {.inline.} =
   PulsarInterpreter(
     tokenizer: newTokenizer(source),
     clauses: @[],
-    newestArena: Arena(kind: akNewest),
-    newArena: Arena(kind: akNew),
-    oldArena: Arena(kind: akOld)
+    stack: newTable[uint, MAtom]()
   )

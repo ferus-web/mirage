@@ -1,21 +1,19 @@
+import std/[tables, options]
+import mirage/atom
 import mirage/runtime/pulsar/interpreter
-import pretty
 
 let i = newPulsarInterpreter("""
 CLAUSE main
-  1 LOADS       0 "Hello world"
-  2 LOADI       1 32
-  3 EQU         0 32
-  4 JUMP        6
-  5 JUMP        7
-  6 CALL print  0
-  7 RETURN      NULL
-  8 LOADS       2 "This should never happen"
-  9 CALL print  2
-  10 RETURN      NULL
+  1 LOADI   1 0  # control integer
+  2 LOADI   2 1  # increment factor
+  3 LOADI   3 32 # limit
+  4 SUBI    1 2  # subtract [2] from [1]
+  5 CALL    print 1 # call the print builtin on [1]
+  6 EQU     1 3     # equate [1] to [3]
+  7 RETURN  NULL    # if we've reached [3], halt the execution of the `main` clause. Since there's no rollback data, we'll exit execution.
+  8 JUMP    4       # if we haven't, jump to op 4
 END main
 """)
 
 analyze i
-
-print i
+run i

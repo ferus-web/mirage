@@ -1,4 +1,5 @@
 import std/[hashes, options]
+import utils
 
 type
   MAtomKind* = enum
@@ -6,9 +7,8 @@ type
     String = 1
     Integer = 2
     Sequence = 3
-    Ref = 4
 
-  MAtom* = ref object
+  MAtom* = object
     case kind*: MAtomKind
     of String:
       str*: string
@@ -16,12 +16,19 @@ type
       integer*: int
     of Sequence:
       sequence*: seq[MAtom]
-    of Ref:
-      reference*: Option[int]
-      link*: string
+      cap*: Option[int]
     of Null: discard
 
   MAtomSeq* = distinct seq[MAtom]
+
+proc `=destroy`*(dest: MAtom) =
+  case dest.kind
+  of String:
+    `=destroy`(dest.str)
+  of Sequence:
+    for atom in dest.sequence:
+      `=destroy`(atom)
+  else: discard 
 
 #[
 proc `=copy`*(dest: var MAtom, src: MAtom) =
@@ -83,11 +90,6 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
       result &= item.crush(id & "_mseq_" & $i)
 
     result &= '$' # sequence guard close
-  of Ref:
-    if atom.reference.isSome:
-      return $atom.reference.unsafeGet()
-
-    return atom.link
   of Null:
     return "Null"
 
@@ -110,28 +112,10 @@ proc getSequence*(atom: MAtom): Option[seq[MAtom]] {.inline.} =
   if atom.kind == Sequence:
     return some(atom.sequence)
 
-proc isStrong*(atom: MAtom): bool {.inline.} =
-  atom.kind == Ref and atom.reference.isSome
-
-proc isWeak*(atom: MAtom): bool {.inline.} =
-  atom.kind == Ref and atom.reference.isNone
-
 proc str*(s: string): MAtom {.inline.} =
   MAtom(
     kind: String,
     str: s
-  )
-
-proc strongRef*(idx: int): MAtom {.inline.} =
-  MAtom(
-    kind: Ref,
-    reference: some idx
-  )
-
-proc weakRef*(link: string): MAtom {.inline.} =
-  MAtom(
-    kind: Ref,
-    link: link
   )
 
 proc integer*(i: int): MAtom {.inline.} =
@@ -145,3 +129,18 @@ proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
     kind: Sequence,
     sequence: s
   )
+
+proc toString*(atom: MAtom): MAtom {.inline.} =
+  case atom.kind
+  of String:
+    return atom
+  of Integer:
+    return str(
+      $(&atom.getInt())
+    )
+  of Sequence:
+    return str(
+      $(&atom.getSequence())
+    )
+  of Null:
+    return str "Null"
