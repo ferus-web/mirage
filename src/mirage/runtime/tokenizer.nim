@@ -223,7 +223,7 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
     operation = Token(kind: tkOperation)
     content: string
 
-  while true:
+  while not tokenizer.isEof:
     let c = tokenizer.nextChar()
     tokenizer.forwards(1)
 

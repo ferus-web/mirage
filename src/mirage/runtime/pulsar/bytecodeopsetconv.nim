@@ -15,7 +15,6 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
   op.index = opIdx.integer.uint64
 
   let opCode = dtok.nextExcludingWhitespace()
-
   op.opcode = toOp(opCode.op)
 
   while not dtok.isEof():
@@ -26,5 +25,6 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
       continue
 
     break
-
+  
+  discard dtok.consumeWhitespace()
   some op

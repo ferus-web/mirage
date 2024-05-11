@@ -1,5 +1,6 @@
-import std/[hashes, options]
-import utils
+import std/[strutils, hashes, options]
+import ./runtime/[shared, tokenizer]
+import ./utils
 
 type
   MAtomKind* = enum
@@ -7,16 +8,22 @@ type
     String = 1
     Integer = 2
     Sequence = 3
+    Ident = 4
+    UnsignedInt = 5
 
   MAtom* = object
     case kind*: MAtomKind
     of String:
       str*: string
+    of Ident:
+      ident*: string
     of Integer:
       integer*: int
     of Sequence:
       sequence*: seq[MAtom]
       cap*: Option[int]
+    of UnsignedInt:
+      uinteger*: uint
     of Null: discard
 
   MAtomSeq* = distinct seq[MAtom]
@@ -25,6 +32,8 @@ proc `=destroy`*(dest: MAtom) =
   case dest.kind
   of String:
     `=destroy`(dest.str)
+  of Ident:
+    `=destroy`(dest.ident)
   of Sequence:
     for atom in dest.sequence:
       `=destroy`(atom)
@@ -68,6 +77,8 @@ proc hash*(atom: MAtom): Hash {.inline.} =
   case atom.kind
   of String:
     h = h !& atom.str.hash()
+  of Ident:
+    h = h !& atom.ident.hash()
   of Integer:
     h = h !& atom.integer
   else: discard
@@ -83,13 +94,21 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
       result &= atom.str
   of Integer:
     result &= $atom.integer
+  of UnsignedInt:
+    result &= $atom.uinteger
+  of Ident:
+    result &= atom.ident
   of Sequence:
-    result &= '$' # sequence guard open
+    result &= '[' # sequence guard open
 
     for i, item in atom.sequence:
+      echo i
       result &= item.crush(id & "_mseq_" & $i)
 
-    result &= '$' # sequence guard close
+      if i + 1 < atom.sequence.len:
+        result &= ", "
+
+    result &= ']' # sequence guard close
   of Null:
     return "Null"
 
@@ -108,6 +127,14 @@ proc getInt*(atom: MAtom): Option[int] {.inline.} =
   if atom.kind == Integer:
     return some(atom.integer)
 
+proc getIdent*(atom: MAtom): Option[string] {.inline.} =
+  if atom.kind == Ident:
+    return some atom.ident
+
+proc getUint*(atom: MAtom): Option[uint] {.inline.} =
+  if atom.kind == UnsignedInt:
+    return some atom.uinteger
+
 proc getSequence*(atom: MAtom): Option[seq[MAtom]] {.inline.} =
   if atom.kind == Sequence:
     return some(atom.sequence)
@@ -124,6 +151,19 @@ proc integer*(i: int): MAtom {.inline.} =
     integer: i
   )
 
+proc uinteger*(u: uint): MAtom {.inline.} =
+  MAtom(
+    kind: UnsignedInt,
+    uinteger: u
+  )
+
+proc ident*(i: string): MAtom {.inline.} =
+  MAtom(kind: Ident, ident: i)
+
+proc toMAtom*(tok: Token) {.inline.} =
+  if tok.kind notin [tkIdent, tkQuotedString, tkInteger]:
+    raise newException(ValueError, "Invalid token kind for converting to MAtom: " & $tok.kind)
+
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
   MAtom(
     kind: Sequence,
@@ -134,6 +174,10 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
   case atom.kind
   of String:
     return atom
+  of Ident:
+    return str(
+      $(&atom.getIdent())
+    )
   of Integer:
     return str(
       $(&atom.getInt())
@@ -142,5 +186,28 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return str(
       $(&atom.getSequence())
     )
+  of UnsignedInt:
+    return str(
+      $(&atom.getUint())
+    )
   of Null:
     return str "Null"
+
+proc toInt*(atom: MAtom): MAtom {.inline.} =
+  case atom.kind
+  of String:
+    try:
+      return parseInt(atom.str).integer()
+    except ValueError:
+      return integer 0
+  of Ident:
+    try:
+      return parseInt(atom.ident).integer()
+    except ValueError:
+      return integer 0
+  of Integer, UnsignedInt:
+    return atom
+  of Sequence:
+    return atom.sequence.len.integer()
+  of Null:
+    return integer 0

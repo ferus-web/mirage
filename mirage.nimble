@@ -9,10 +9,11 @@ srcDir        = "src"
 
 # Dependencies
 
-requires "nim >= 2.0.2"
+requires "nim >= 2.0.0"
+requires "flatty >= 0.3.4"
+requires "zippy >= 0.10.12"
 
-when not defined(release):
-  requires "pretty >= 0.1.0"
+requires "pretty >= 0.1.0"
 
 when not defined(mirageNoJit):
   requires "laser >= 0.0.1"

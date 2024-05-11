@@ -1,3 +1,4 @@
+import std/tables
 import ../atom
 
 type
@@ -126,50 +127,57 @@ type
     ## Cast a value on the stack to a string and store it in another location.
     CastStr = 0x19
 
+    ## Load an unsigned integer onto the stack
+    LoadUint = 0x20
+
+const
+  OpCodeToTable* = {
+    "CALL": Call,
+    "LOADI": LoadInt,
+    "LOADS": LoadStr,
+    "LOADL": LoadList,
+    "ADD": ADD,
+    "SUB": SUB,
+    "MULT": Mult,
+    "DIV": Div,
+    "JUMP": Jump,
+    "RETURN": Return,
+    "EQU": Equate,
+    "ADDI": AddInt,
+    "ADDS": AddStr,
+    "POPL": PopList,
+    "POPLPFX": PopListPrefix,
+    "CASTI": CastInt,
+    "ADDL": AddList,
+    "CASTS": CastStr,
+    "LOADUI": LoadUint
+  }.toTable
+
+  StrToOpCode* = block:
+    var vals = initTable[Ops, string]()
+    for str, operation in OpCodeToTable:
+      vals[operation] = str
+
+    vals
+
 proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
-  case op
-  of "CALL":
-    Call
-  of "LOADI":
-    LoadInt
-  of "LOADS":
-    LoadStr
-  of "ADD":
-    Add
-  of "SUB":
-    Sub
-  of "MULT":
-    Mult
-  of "DIV":
-    Div
-  of "JUMP":
-    Jump
-  of "RETURN":
-    Return
-  of "EQU":
-    Equate
-  of "ADDI":
-    AddInt
-  of "ADDS":
-    AddStr
-  of "SUBI":
-    SubInt
-  of "LOADL":
-    LoadList
-  of "POPL":
-    PopList
-  of "POPLPFX":
-    PopListPrefix
-  of "CASTINT":
-    CastInt
-  of "CASTSTR":
-    CastStr
+  if op in OpCodeToTable:
+    return OpCodeToTable[op]
   else:
-    raise newException(ValueError, "Invalid operation: " & op)
+    raise newException(
+      ValueError,
+      "Invalid operation: " & op
+    )
+
+proc opToString*(op: Ops): string {.inline, raises: [].} =
+  try:
+    return StrToOpCode[op]
+  except KeyError:
+    assert false, "unreachable"
 
 const
   KNOWN_OPS* = [
     "CALL", "LOADI", "LOADS", "ADDI", "ADDS",
     "ADD", "SUB", "MULT", "DIV", "JUMP", "EQU", "RETURN",
-    "SUBI"
+    "SUBI", "CASTS", "CASTI", "LOADL", "ADDL"
   ]
