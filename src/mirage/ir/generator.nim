@@ -123,6 +123,17 @@ proc loadUint*[P: SomeUnsignedInt](
     )
   )
 
+proc returnFn*(
+  gen: IRGenerator,
+  value: MAtom
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: Return,
+      arguments: @[value]
+    )
+  )
+
 proc call*(
   gen: IRGenerator,
   function: string,
