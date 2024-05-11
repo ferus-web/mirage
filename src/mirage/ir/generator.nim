@@ -147,7 +147,10 @@ proc loadBool*(
   gen.addOp(
     IROperation(
       opCode: LoadBool,
-      arguments: @[boolean value]
+      arguments: @[
+        uinteger position, 
+        boolean value
+      ]
     )
   )
 

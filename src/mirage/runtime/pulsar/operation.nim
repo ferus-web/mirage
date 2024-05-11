@@ -3,7 +3,7 @@
 ## Copyright (C) 2024 Trayambak Rai
 
 import ../shared
-import ../../atom
+import ../../[atom, utils]
 import pretty
 
 when not defined(mirageNoJit) and defined(amd64):
@@ -34,19 +34,26 @@ proc consume*(operation: Operation, kind: MAtomKind, expects: string): MAtom {.i
   let 
     raw = operation.rawArgs[0]
     rawType = case raw.kind
-    of tkQuotedString, tkIdent: String
+    of tkQuotedString: String
     of tkInteger: Integer
     else: Null
   
   operation.rawArgs.del(0)
   
-  if rawType != kind:
+  if rawType != kind and raw.kind != tkIdent:
     raise newException(ValueError, expects & ", got " & $rawType & " instead.")
 
   case raw.kind
   of tkQuotedString:
     return str raw.str
   of tkIdent:
+    # if it is a boolean, return it as such
+    # otherwise, return as a string
+    let asBool = boolean(raw.ident)
+    
+    if *asBool:
+      return &asBool
+    
     return str raw.ident
   of tkInteger:
     return integer raw.integer

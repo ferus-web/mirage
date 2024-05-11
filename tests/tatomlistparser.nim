@@ -9,6 +9,8 @@ gen.newModule("main")
 gen.loadList(1)
 gen.loadStr(2, "hello")
 gen.appendList(1, 2) # append [2] to [1]
+gen.loadBool(3, true)
+gen.call("print", @[integer 3])
 print gen
 
 let ir = gen.emit()

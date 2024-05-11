@@ -139,6 +139,12 @@ proc resolve*(
 
     op.arguments &=
       op.consume(Integer, "ADDL expects an integer at position 2")
+  of LoadBool:
+    op.arguments &=
+      op.consume(Integer, "LOADB expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Boolean, "LOADB expects a boolean at position 2")
   else: discard
 
   op.rawArgs = mRawArgs
@@ -396,6 +402,12 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
       (&op.arguments[1].getInt()).uint
     )
     interpreter.stack[pos] = list
+    inc interpreter.currIndex
+  of LoadBool:
+    interpreter.addAtom(
+      op.arguments[1],
+      (&op.arguments[0].getInt()).uint
+    )
     inc interpreter.currIndex
   else:
     inc interpreter.currIndex

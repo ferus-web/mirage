@@ -47,6 +47,9 @@ proc retrieve*(
   name: string,
   gen: IRGenerator
 ): Option[string] {.inline.} =
+  when defined(mirageDontCacheBytecode):
+    return
+
   let emissionCache = getMirageCacheDir() / "emission_cache"
 
   if not dirExists(emissionCache):
