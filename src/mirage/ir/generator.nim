@@ -149,10 +149,9 @@ proc call*(
   )
 
 proc emit*(gen: IRGenerator): string {.inline.} =
-  when defined(release):
-    let cached = retrieve(gen.name, gen)
-    if *cached:
-      return &cached
+  let cached = retrieve(gen.name, gen)
+  if *cached:
+    return &cached
 
   let ir = gen.emitIR()
   cache(gen.name, ir, gen)
