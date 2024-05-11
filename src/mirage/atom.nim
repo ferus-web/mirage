@@ -110,7 +110,7 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
 
     result &= ']' # sequence guard close
   of Null:
-    return "Null"
+    return "NULL"
 
 proc len*(s: MAtomSeq): int {.borrow.}
 proc `[]`*(s: MAtomSeq, i: Natural): MAtom {.inline.} =
@@ -139,26 +139,29 @@ proc getSequence*(atom: MAtom): Option[seq[MAtom]] {.inline.} =
   if atom.kind == Sequence:
     return some(atom.sequence)
 
-proc str*(s: string): MAtom {.inline.} =
+proc str*(s: string): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(
     kind: String,
     str: s
   )
 
-proc integer*(i: int): MAtom {.inline.} =
+proc integer*(i: int): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(
     kind: Integer,
     integer: i
   )
 
-proc uinteger*(u: uint): MAtom {.inline.} =
+proc uinteger*(u: uint): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(
     kind: UnsignedInt,
     uinteger: u
   )
 
-proc ident*(i: string): MAtom {.inline.} =
+proc ident*(i: string): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Ident, ident: i)
+
+proc null*: MAtom {.inline, gcsafe, noSideEffect.} =
+  MAtom(kind: Null)
 
 proc toMAtom*(tok: Token) {.inline.} =
   if tok.kind notin [tkIdent, tkQuotedString, tkInteger]:
