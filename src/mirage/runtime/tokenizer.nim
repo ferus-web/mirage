@@ -1,8 +1,12 @@
 ## A tokenizer for MIR.
 ## This works very similarly to Stylus' tokenizer.
+##
+## Copyright (C) Trayambak Rai 2024
 
 import std/[options, strutils, math]
+import ../utils
 import shared
+import pretty
 
 type
   TokenizerDefect* = object of Defect
@@ -221,12 +225,12 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
     operation = Token(kind: tkOperation)
     content: string
 
-  while true:
+  while not tokenizer.isEof:
     let c = tokenizer.nextChar()
     tokenizer.forwards(1)
 
     case c
-    of {'a'..'z'}, {'A'..'Z'}:
+    of {'a'..'z'}, {'A'..'Z'}, '_':
       content &= c
     of Whitespace, '\0':
       break
@@ -290,6 +294,15 @@ proc nextExcludingWhitespace*(tokenizer: Tokenizer): Token {.inline.} =
 proc maybeNext*(tokenizer: Tokenizer): Option[Token] {.inline.} =
   if not tokenizer.isEof():
     return some tokenizer.next()
+
+proc maybeNextExcludingWhitespace*(tokenizer: Tokenizer): Option[Token] {.inline.} =
+  var next = next tokenizer
+
+  while not tokenizer.isEof() and next.kind == tkWhitespace:
+    next = next tokenizer
+
+  if next.kind != tkWhitespace:
+    return some next
 
 iterator flow*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token {.inline.} =
   while not tokenizer.isEof():
