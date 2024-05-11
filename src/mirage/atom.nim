@@ -1,3 +1,8 @@
+## MAtoms are a dynamic-ish type used by all of Mirage to pass around values from the emitter to the interpreter, 
+## to the calling Nim code itself.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import std/[strutils, hashes, options]
 import ./runtime/[shared, tokenizer]
 import ./utils
@@ -10,6 +15,7 @@ type
     Sequence = 3
     Ident = 4
     UnsignedInt = 5
+    Boolean = 6
 
   MAtom* = object
     case kind*: MAtomKind
@@ -24,6 +30,8 @@ type
       cap*: Option[int]
     of UnsignedInt:
       uinteger*: uint
+    of Boolean:
+      state*: bool
     of Null: discard
 
   MAtomSeq* = distinct seq[MAtom]
@@ -98,6 +106,8 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
     result &= $atom.uinteger
   of Ident:
     result &= atom.ident
+  of Boolean:
+    result &= $atom.state
   of Sequence:
     result &= '[' # sequence guard open
 
@@ -126,6 +136,10 @@ proc getStr*(atom: MAtom): Option[string] {.inline.} =
 proc getInt*(atom: MAtom): Option[int] {.inline.} =
   if atom.kind == Integer:
     return some(atom.integer)
+
+proc getBool*(atom: MAtom): Option[bool] {.inline.} =
+  if atom.kind == Boolean:
+    return some atom.state
 
 proc getIdent*(atom: MAtom): Option[string] {.inline.} =
   if atom.kind == Ident:
@@ -156,6 +170,22 @@ proc uinteger*(u: uint): MAtom {.inline, gcsafe, noSideEffect.} =
     kind: UnsignedInt,
     uinteger: u
   )
+
+proc boolean*(b: bool): MAtom {.inline, gcsafe, noSideEffect.} =
+  MAtom(
+    kind: Boolean,
+    state: b
+  )
+
+proc boolean*(s: string): Option[MAtom] {.inline, gcsafe, noSideEffect.} =
+  try:
+    return some(
+      MAtom(
+        kind: Boolean,
+        state: parseBool(s)
+      )
+    )
+  except ValueError: discard
 
 proc ident*(i: string): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Ident, ident: i)
@@ -193,6 +223,10 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return str(
       $(&atom.getUint())
     )
+  of Boolean:
+    return str(
+      $(&atom.getBool())
+    )
   of Null:
     return str "Null"
 
@@ -214,3 +248,5 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
     return atom.sequence.len.integer()
   of Null:
     return integer 0
+  of Boolean:
+    return atom.state.int.integer()

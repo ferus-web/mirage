@@ -1,3 +1,6 @@
+## Prelude file
+## Copyright (C) 2024 Trayambak Rai
+
 import mirage/runtime/pulsar/[
   interpreter, operation
 ]

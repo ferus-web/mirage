@@ -1,3 +1,7 @@
+## Converts a stream of MIR tokens into an operation, if possible.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import std/[options, strutils]
 import ../[shared, tokenizer], operation
 import ../../utils

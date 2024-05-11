@@ -1,5 +1,7 @@
 ## A tokenizer for MIR.
 ## This works very similarly to Stylus' tokenizer.
+##
+## Copyright (C) Trayambak Rai 2024
 
 import std/[options, strutils, math]
 import ../utils

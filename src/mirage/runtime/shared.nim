@@ -130,6 +130,9 @@ type
     ## Load an unsigned integer onto the stack
     LoadUint = 0x20
 
+    ## Load a boolean onto the stack
+    LoadBool = 0x21
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -150,7 +153,8 @@ const
     "CASTI": CastInt,
     "ADDL": AddList,
     "CASTS": CastStr,
-    "LOADUI": LoadUint
+    "LOADUI": LoadUint,
+    "LOADB": LoadBool
   }.toTable
 
   StrToOpCode* = block:
@@ -179,5 +183,5 @@ const
   KNOWN_OPS* = [
     "CALL", "LOADI", "LOADS", "ADDI", "ADDS",
     "ADD", "SUB", "MULT", "DIV", "JUMP", "EQU", "RETURN",
-    "SUBI", "CASTS", "CASTI", "LOADL", "ADDL"
+    "SUBI", "CASTS", "CASTI", "LOADL", "ADDL", "LOADB"
   ]

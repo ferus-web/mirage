@@ -1,3 +1,7 @@
+## Shared code for the entire IR generation suite.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import std/hashes
 import ../runtime/shared, ../atom
 

@@ -1,3 +1,7 @@
+## A basic operation object used by the Pulsar interpreter.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import ../shared
 import ../../atom
 import pretty

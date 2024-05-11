@@ -1,3 +1,8 @@
+## This file contains the "Pulsar" MIR interpreter. It's a redesign of the previous bytecode analyzer (keyword: analyzer, not interpreter)
+## into a more modular and efficient form. You shouldn't import this directly, import `mirage/interpreter/prelude` instead.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import std/[tables, options]
 import ../../[atom, utils]
 import ../[shared, tokenizer]

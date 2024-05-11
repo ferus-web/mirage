@@ -1,3 +1,8 @@
+## IR generation utility. Helps with the manipulation of the IRGenerator state
+## which can then be used by the MIR emitter to generate MIR.
+##
+## Copyright (C) 2024 Trayambak Rai
+
 import std/[sequtils]
 import ../runtime/shared, ../[atom, utils]
 import ./[emitter, shared, caching]
@@ -131,6 +136,18 @@ proc returnFn*(
     IROperation(
       opCode: Return,
       arguments: @[value]
+    )
+  )
+
+proc loadBool*(
+  gen: IRGenerator,
+  position: uint,
+  value: bool
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: LoadBool,
+      arguments: @[boolean value]
     )
   )
 

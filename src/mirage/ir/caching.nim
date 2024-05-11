@@ -1,6 +1,8 @@
 ## Caching utility for the IR generator to speed-up IR generation.
 ## This isn't really needed yet but it should help with a few potential slowdowns later.
 ## It uses its own MIR format that is encoded via Flatty and compressed via Zippy to save on space.
+##
+## Copyright (C) 2024 Trayambak Rai
 
 import std/[os, options, hashes]
 import zippy, flatty/binny
