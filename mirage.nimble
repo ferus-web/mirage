@@ -17,3 +17,6 @@ requires "pretty >= 0.1.0"
 
 when not defined(mirageNoJit):
   requires "laser >= 0.0.1"
+
+task explorer, "Compile MIR explorer":
+  exec "nim c -d:release -d:danger -o:explorer utils/explorer.nim"

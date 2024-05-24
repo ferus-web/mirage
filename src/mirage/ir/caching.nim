@@ -80,3 +80,25 @@ proc retrieve*(
   some data.readStr(
     2 * sizeof uint64, data.len - 1
   )
+
+proc retrieve*(name: string): Option[string] {.inline.} =
+  let emissionCache = getMirageCacheDir() / "emission_cache"
+
+  if not dirExists(emissionCache):
+    return
+
+  let fPath = emissionCache / name & ".mir"
+
+  if not fileExists(fPath):
+    return
+
+  var data: string
+
+  try:
+    data = readFile(fPath).uncompress()
+  except ZippyError:
+    return
+
+  some data.readStr(
+    2 * sizeof uint64, data.len - 1
+  )

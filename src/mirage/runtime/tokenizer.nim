@@ -3,9 +3,9 @@
 ##
 ## Copyright (C) Trayambak Rai 2024
 
-import std/[options, strutils, math]
+import std/[options, strutils, tables, math]
 import ../utils
-import shared
+import ./shared
 import pretty
 
 type
@@ -236,7 +236,7 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
       break
     else: discard
 
-  if content in KNOWN_OPS:
+  if content in OpCodeToTable:
     operation.op = content
     operation
   else:

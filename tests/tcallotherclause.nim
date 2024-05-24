@@ -16,6 +16,8 @@ gen.returnFn(null())
 # function "main"
 gen.newModule("main")
 gen.call("other_clause", @[])
+gen.loadStr(1, "We're back in the main function!")
+gen.call("print", @[integer 1])
 gen.returnFn(null())
 
 # emit IR

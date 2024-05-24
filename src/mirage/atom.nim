@@ -4,7 +4,7 @@
 ## Copyright (C) 2024 Trayambak Rai
 
 import std/[strutils, hashes, options]
-import ./runtime/[shared, tokenizer]
+import ./runtime/[shared]
 import ./utils
 
 type
@@ -192,10 +192,6 @@ proc ident*(i: string): MAtom {.inline, gcsafe, noSideEffect.} =
 
 proc null*: MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Null)
-
-proc toMAtom*(tok: Token) {.inline.} =
-  if tok.kind notin [tkIdent, tkQuotedString, tkInteger]:
-    raise newException(ValueError, "Invalid token kind for converting to MAtom: " & $tok.kind)
 
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
   MAtom(

@@ -132,6 +132,12 @@ type
 
     ## Load a boolean onto the stack
     LoadBool = 0x21
+    
+    ## Swap two indices that hold atoms on the stack
+    Swap = 0x22
+
+    ## Jump to an operation in the clause if an error occurs whilst executing a line of code.
+    JumpOnError = 0x23
 
 const
   OpCodeToTable* = {
@@ -154,10 +160,14 @@ const
     "ADDL": AddList,
     "CASTS": CastStr,
     "LOADUI": LoadUint,
-    "LOADB": LoadBool
+    "LOADB": LoadBool,
+    "SUBI": SubInt,
+    "SWAP": Swap,
+    "SCAPL": SetCapList,
+    "JMPE": JumpOnError
   }.toTable
 
-  StrToOpCode* = block:
+  OpCodeToString* = block:
     var vals = initTable[Ops, string]()
     for str, operation in OpCodeToTable:
       vals[operation] = str
@@ -175,13 +185,6 @@ proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
 
 proc opToString*(op: Ops): string {.inline, raises: [].} =
   try:
-    return StrToOpCode[op]
+    return OpCodeToString[op]
   except KeyError:
     assert false, "unreachable"
-
-const
-  KNOWN_OPS* = [
-    "CALL", "LOADI", "LOADS", "ADDI", "ADDS",
-    "ADD", "SUB", "MULT", "DIV", "JUMP", "EQU", "RETURN",
-    "SUBI", "CASTS", "CASTI", "LOADL", "ADDL", "LOADB"
-  ]

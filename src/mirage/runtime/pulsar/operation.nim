@@ -22,15 +22,27 @@ type
     rawArgs*: seq[Token] # should be zero'd out once `computeArgs` is called
 
     arguments*: seq[MAtom]
+    consumed*: bool = false
     
     when not defined(mirageNoJit) and defined(amd64):
       called*: int ## How many times has this operation been called this clause execution? (used to determine if it should be JIT'd)
       compiled*: JITFunction ## The compiled representation of this operation
 
+proc expand*(operation: Operation): string {.inline.} =
+  assert operation.consumed
+  var expanded = $operation.opcode
+
+  for arg in operation.arguments:
+    expanded &= ' ' & $arg.crush("")
+
+  expanded
+
 proc shouldCompile*(operation: Operation): bool {.inline, noSideEffect, gcsafe.} =
   operation.called >= MirageOperationJitThreshold
 
 proc consume*(operation: Operation, kind: MAtomKind, expects: string): MAtom {.inline.} =
+  operation.consumed = true
+
   let 
     raw = operation.rawArgs[0]
     rawType = case raw.kind

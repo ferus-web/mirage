@@ -5,7 +5,7 @@
 
 import std/[tables, options]
 import ../../[atom, utils]
-import ../[shared, tokenizer]
+import ../[shared, tokenizer, exceptions]
 import ./[operation, bytecodeopsetconv]
 import pretty
 
@@ -16,6 +16,10 @@ type
 
     rollback*: ClauseRollback
 
+  JumpPoint* {.union.} = ref object
+    clause*: int
+    index*: uint
+
   ClauseRollback* = ref object
     prev*: int = int.low
     index*: uint = 1
@@ -25,8 +29,11 @@ type
     currClause: int
     currIndex: uint = 1
     clauses: seq[Clause]
+    currJumpOnErr: Option[uint]
 
     stack*: TableRef[uint, MAtom]
+    errors*: seq[RuntimeException]
+    trace: ExceptionTrace
 
 proc find*(clause: Clause, id: uint): Option[Operation] {.inline.} =
   for op in clause.operations:
@@ -78,6 +85,43 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
 proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) {.inline.} =
   interpreter.stack[id] = atom
 
+proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException) {.inline.} =
+  if *interpreter.currJumpOnErr:
+    return
+
+  interpreter.errors.add(exception)
+  interpreter.trace = ExceptionTrace(
+    prev: none(ExceptionTrace), # FIXME: fix this
+    next: none(ExceptionTrace), # FIXME: fix this
+    clause: interpreter.currClause,
+    line: interpreter.currIndex.int,
+    exception: exception
+  )
+
+proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] {.inline.} =
+  var 
+    msg = "Traceback (most recent call last):"
+    currTrace = interpreter.trace
+
+  while true:
+    let clause = interpreter.getClause(currTrace.clause.some)
+    assert *clause, "No clause found with ID: " & $currTrace.clause
+
+    let operation = (&clause).find(currTrace.line.uint)
+    assert *operation, "No operation found in clause " & $currTrace.clause & " with ID: " & $currTrace.line
+
+    msg &= 
+      "\n\tClause \"" & (&clause).name & "\", operation " & $currTrace.line & '\n' &
+      "\t\t" & (&operation).expand() &
+      '\n' & $typeof(currTrace.exception) & ": " & currTrace.exception.message
+    
+    if *currTrace.prev:
+      currTrace = &currTrace.prev
+    else:
+      break
+
+  some(msg)
+
 proc resolve*(
   interpreter: PulsarInterpreter, 
   clause: Clause, op: Operation
@@ -93,11 +137,9 @@ proc resolve*(
     op.arguments &=
       op.consume(String, "LOADS expects a string at position 2")
   of LoadInt, LoadUint:
-    op.arguments &=
-      op.consume(Integer, "LOADI/LOADUI expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "LOADI/LOADUI expects an integer at position 2")
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
   of Equate:
     for x, _ in op.rawArgs.deepCopy():
       op.arguments &=
@@ -112,24 +154,14 @@ proc resolve*(
   of Jump:
     op.arguments &=
       op.consume(Integer, "JUMP expects exactly one integer as an argument")
-  of AddInt, AddStr:
-    op.arguments &=
-      op.consume(Integer, "ADDI/ADDS expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "ADDI/ADDS expects an integer at position 2")
-  of SubInt:
-    op.arguments &=
-      op.consume(Integer, "SUBI expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "SUBI expects an integer at position 2")
+  of AddInt, AddStr, SubInt:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
   of CastStr, CastInt:
-    op.arguments &=
-      op.consume(Integer, "CASTS/CASTI expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "CASTS/CASTI expects an integer at position 2")
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
   of LoadList:
     op.arguments &=
       op.consume(Integer, "LOADL expects an integer at position 1")
@@ -145,7 +177,26 @@ proc resolve*(
 
     op.arguments &=
       op.consume(Boolean, "LOADB expects a boolean at position 2")
-  else: discard
+  of Swap:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, "SWAP expects an integer at position " & $x)
+  of Add, Mult, Div, Sub:
+    for x in 1 .. 3:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of Return:
+    discard # TODO: implement (xTrayambak)
+  of SetCapList:
+    op.arguments &=
+      op.consume(Integer, "SCAPL expects an integer at position 1")
+  of JumpOnError:
+    op.arguments &=
+      op.consume(Integer, "JMPE expects an integer at position 1")
+  of PopList, PopListPrefix:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
 
   op.rawArgs = mRawArgs
 
@@ -187,6 +238,18 @@ proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
     interpreter.addAtom(asAtom, src)
   else:
     discard
+
+proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
+  var
+    atomA = interpreter.get(a.uint)
+    atomB = interpreter.get(b.uint)
+
+  if not *atomA or not *atomB:
+    return
+
+  swap(atomA, atomB)
+  interpreter.addAtom(&atomA, a.uint)
+  interpreter.addAtom(&atomB, b.uint)
 
 proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
   let oclause = interpreter.getClause()
@@ -259,6 +322,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
     interpreter.currClause = (&clause).rollback.prev
     interpreter.currIndex = (&clause).rollback.index
+
+    print interpreter.getClause()
   of Call:
     if op.arguments[0].getStr() == some "print":
       for i, x in op.arguments:
@@ -285,6 +350,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
         newClause.rollback.prev = interpreter.currClause
         newClause.rollback.index = interpreter.currIndex
+
+        print newClause
 
         interpreter.currClause = index
         interpreter.clauses[interpreter.currClause] = newClause
@@ -409,16 +476,48 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
       (&op.arguments[0].getInt()).uint
     )
     inc interpreter.currIndex
-  else:
+  of Swap:
+    let
+      a = &op.arguments[0].getInt()
+      b = &op.arguments[1].getInt()
+    
+    interpreter.swap(a, b)
     inc interpreter.currIndex
+  of SubInt:
+    let
+      aIdx = &op.arguments[0].getInt()
+      bIdx = &op.arguments[1].getInt()
+
+      a = interpreter.get(aIdx.uint)
+      b = interpreter.get(bIdx.uint)
+
+    if not *a or not *b:
+      inc interpreter.currIndex
+      return
+
+    let
+      aI = (&a).getInt()
+      aB = (&b).getInt()
+
+    interpreter.stack[aIdx.uint] = integer(&aI + &aB)
+    inc interpreter.currIndex
+  of JumpOnError:
+    let beforeExecErrors = interpreter.errors.len
+    
+    interpreter.currJumpOnErr = some(interpreter.currIndex)
+    inc interpreter.currIndex
+  else:
+    when defined(release):
+      inc interpreter.currIndex
+    else:
+      echo "Unimplemented opcode: " & $op.opCode
+      quit(1)
 
 proc setEntryPoint*(interpreter: PulsarInterpreter, name: string) {.inline.} =
   for i, clause in interpreter.clauses:
     if clause.name == name:
       interpreter.currClause = i
       return
-
-  print interpreter.clauses
 
   raise newException(
     ValueError,
