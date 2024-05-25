@@ -50,7 +50,7 @@ proc consume*(operation: Operation, kind: MAtomKind, expects: string): MAtom {.i
     of tkInteger: Integer
     else: Null
   
-  operation.rawArgs.del(0)
+  operation.rawArgs = deepCopy(operation.rawArgs[1 ..< operation.rawArgs.len])
   
   if rawType != kind and raw.kind != tkIdent:
     raise newException(ValueError, expects & ", got " & $rawType & " instead.")
