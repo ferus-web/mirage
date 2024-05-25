@@ -139,6 +139,26 @@ type
     ## Jump to an operation in the clause if an error occurs whilst executing a line of code.
     JumpOnError = 0x23
 
+    ## Same as EQU, but compares if `a` is greater than `b`
+    GreaterThanInt = 0x24
+
+    ## Same as EQU, but compares if `a` is lesser than `b`
+    LesserThanInt = 0x25
+    
+    ## Load an object onto the stack
+    LoadObject = 0x26
+
+    ## Create a field in an object
+    CreateField = 0x27
+
+    ## Write an atom into the field of an object without its name, just by its index.
+    ## This is faster than finding the field via its name.
+    FastWriteField = 0x28
+
+    ## Write an atom into the field of an object without its name, just by its index.
+    ## This is slower than just providing the index.
+    WriteField = 0x29
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -164,7 +184,13 @@ const
     "SUBI": SubInt,
     "SWAP": Swap,
     "SCAPL": SetCapList,
-    "JMPE": JumpOnError
+    "JMPE": JumpOnError,
+    "GTI": GreaterThanInt,
+    "LTI": LesserThanInt,
+    "LOADO": LoadObject,
+    "CFIELD": CreateField,
+    "FWFIELD": FastWriteField,
+    "WFIELD": WriteField
   }.toTable
 
   OpCodeToString* = block:
