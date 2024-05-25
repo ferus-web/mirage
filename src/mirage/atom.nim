@@ -3,7 +3,7 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[strutils, hashes, options]
+import std/[strutils, tables, hashes, options]
 import ./runtime/[shared]
 import ./utils
 
@@ -16,6 +16,7 @@ type
     Ident = 4
     UnsignedInt = 5
     Boolean = 6
+    Object = 7
 
   MAtom* = object
     case kind*: MAtomKind
@@ -32,6 +33,9 @@ type
       uinteger*: uint
     of Boolean:
       state*: bool
+    of Object:
+      fields*: TableRef[string, int]
+      values*: seq[MAtom]
     of Null: discard
 
   MAtomSeq* = distinct seq[MAtom]
@@ -119,7 +123,7 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
         result &= ", "
 
     result &= ']' # sequence guard close
-  of Null:
+  of Null, Object:
     return "NULL"
 
 proc len*(s: MAtomSeq): int {.borrow.}
@@ -199,6 +203,13 @@ proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
     sequence: s
   )
 
+proc obj*: MAtom {.inline.} =
+  MAtom(
+    kind: Object,
+    fields: newTable[string, int](),
+    values: @[]
+  )
+
 proc toString*(atom: MAtom): MAtom {.inline.} =
   case atom.kind
   of String:
@@ -223,6 +234,14 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return str(
       $(&atom.getBool())
     )
+  of Object:
+    var msg = "<object structure>\n"
+    
+    for field, index in atom.fields:
+      msg &= field & ": " & atom.values[index].crush("") & '\n'
+
+    msg &= "<end object structure>"
+    return msg.str()
   of Null:
     return str "Null"
 
@@ -246,3 +265,4 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
     return integer 0
   of Boolean:
     return atom.state.int.integer()
+  of Object: return integer 0
