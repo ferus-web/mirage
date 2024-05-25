@@ -144,6 +144,10 @@ proc resolve*(
     for x, _ in op.rawArgs.deepCopy():
       op.arguments &=
         op.consume(Integer, "EQU expects an integer at position " & $x)
+  of GreaterThanInt, LesserThanInt:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
   of Call:
     op.arguments &=
       op.consume(String, "CALL expects an ident/string at position 1")
@@ -197,7 +201,27 @@ proc resolve*(
     for x in 1 .. 2:
       op.arguments &=
         op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of LoadObject:
+    op.arguments &=
+      op.consume(Integer, "LOADO expects an integer at position 1")
+  of CreateField:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, "CFIELD expects an integer at position " & $x)
 
+    op.arguments &=
+      op.consume(String, "CFIELD expects a string at position 3")
+  of FastWriteField:
+    for x in 1 .. 2:
+      op.arguments &= 
+        op.consume(Integer, "FWFIELD expects an integer at position " & $x)
+  of WriteField:
+    op.arguments &=
+      op.consume(Integer, "WFIELD expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(String, "WFIELD expects a string at position 2")
+    
   op.rawArgs = mRawArgs
 
 proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
@@ -322,8 +346,6 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
     interpreter.currClause = (&clause).rollback.prev
     interpreter.currIndex = (&clause).rollback.index
-
-    print interpreter.getClause()
   of Call:
     if op.arguments[0].getStr() == some "print":
       for i, x in op.arguments:
@@ -350,8 +372,6 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
         newClause.rollback.prev = interpreter.currClause
         newClause.rollback.index = interpreter.currIndex
-
-        print newClause
 
         interpreter.currClause = index
         interpreter.clauses[interpreter.currClause] = newClause
@@ -505,6 +525,133 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     let beforeExecErrors = interpreter.errors.len
     
     interpreter.currJumpOnErr = some(interpreter.currIndex)
+    inc interpreter.currIndex
+  of GreaterThanInt:
+    if op.arguments.len < 2:
+      inc interpreter.currIndex
+      return
+
+    let
+      a = interpreter.get((
+        &op.arguments[0].getInt()
+      ).uint)
+      b = interpreter.get((
+        &op.arguments[1].getInt()
+      ).uint)
+
+    if not *a or not *b:
+      return
+
+    let
+      aI = (&a).getInt()
+      bI = (&b).getInt()
+
+    if not *aI or not *bI:
+      return
+
+    if &aI > &bI:
+      inc interpreter.currIndex
+    else:
+      interpreter.currIndex += 2
+  of LesserThanInt:
+    if op.arguments.len < 2:
+      inc interpreter.currIndex
+      return
+
+    let
+      a = interpreter.get((
+        &op.arguments[0].getInt()
+      ).uint)
+      b = interpreter.get((
+        &op.arguments[1].getInt()
+      ).uint)
+
+    if not *a or not *b:
+      return
+
+    let
+      aI = (&a).getInt()
+      bI = (&b).getInt()
+
+    if not *aI or not *bI:
+      return
+
+    if &aI < &bI:
+      inc interpreter.currIndex
+    else:
+      interpreter.currIndex += 2
+  of LoadObject:
+    interpreter.addAtom(
+      obj(),
+      (&op.arguments[0].getInt()).uint
+    )
+    inc interpreter.currIndex
+  of CreateField:
+    let oatomIndex = (
+      (&op.arguments[0].getInt()).uint
+    )
+
+    let oatomId = interpreter.get(oatomIndex)
+
+    if not *oatomId:
+      inc interpreter.currIndex
+      return
+
+    var atom = &oatomId
+    let
+      fieldIndex = (&op.arguments[1].getInt())
+      fieldName = &op.arguments[2].getStr()
+
+    atom.fields[fieldName] = fieldIndex
+    atom.values.add(null())
+    
+    interpreter.addAtom(
+      atom, oatomIndex
+    )
+
+    inc interpreter.currIndex
+  of FastWriteField:
+    let
+      oatomIndex = (&op.arguments[0].getInt()).uint
+      oatomId = interpreter.get(oatomIndex)
+
+    if not *oatomId:
+      inc interpreter.currIndex
+      return
+
+    var atom = &oatomId
+    let fieldIndex = (&op.arguments[1].getInt())
+
+    let toWrite = op.consume(Integer, "", enforce = false, some(op.rawArgs.len - 1))
+    atom.values[fieldIndex] = toWrite
+    
+    interpreter.addAtom(atom, oatomIndex)
+    inc interpreter.currIndex
+  of WriteField:
+    let
+      oatomIndex = (&op.arguments[0].getInt()).uint
+      oatomId = interpreter.get(oatomIndex)
+
+    if not *oatomId:
+      inc interpreter.currIndex
+      return
+
+    var 
+      atom = &oatomId
+      fieldIndex = none(int)
+
+    for field, idx in atom.fields:
+      if field == &(op.arguments[1].getStr()):
+        fieldIndex = some(idx)
+
+    if not *fieldIndex:
+      inc interpreter.currIndex
+      return
+    
+    let toWrite = op.consume(Integer, "", enforce = false, some(op.rawArgs.len - 1))
+    atom.values[&fieldIndex] = toWrite
+
+    interpreter.addAtom(atom, oatomIndex)
     inc interpreter.currIndex
   else:
     when defined(release):
