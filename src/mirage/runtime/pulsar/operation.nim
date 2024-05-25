@@ -2,6 +2,7 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
+import std/options
 import ../shared
 import ../../[atom, utils]
 import pretty
@@ -23,6 +24,7 @@ type
 
     arguments*: seq[MAtom]
     consumed*: bool = false
+    lastConsume: int = 0
     
     when not defined(mirageNoJit) and defined(amd64):
       called*: int ## How many times has this operation been called this clause execution? (used to determine if it should be JIT'd)
@@ -40,19 +42,29 @@ proc expand*(operation: Operation): string {.inline.} =
 proc shouldCompile*(operation: Operation): bool {.inline, noSideEffect, gcsafe.} =
   operation.called >= MirageOperationJitThreshold
 
-proc consume*(operation: Operation, kind: MAtomKind, expects: string): MAtom {.inline.} =
+proc consume*(
+  operation: Operation, 
+  kind: MAtomKind, expects: string, 
+  enforce: bool = true,
+  position: Option[int] = none(int)
+): MAtom {.inline.} =
   operation.consumed = true
 
-  let 
-    raw = operation.rawArgs[0]
+  let
+    pos = if *position:
+      &position
+    else:
+      0
+    raw = operation.rawArgs[pos]
     rawType = case raw.kind
     of tkQuotedString: String
     of tkInteger: Integer
     else: Null
   
-  operation.rawArgs.del(0)
+  if not *position:
+    operation.rawArgs = deepCopy(operation.rawArgs[1 ..< operation.rawArgs.len])
   
-  if rawType != kind and raw.kind != tkIdent:
+  if rawType != kind and raw.kind != tkIdent and enforce:
     raise newException(ValueError, expects & ", got " & $rawType & " instead.")
 
   case raw.kind
