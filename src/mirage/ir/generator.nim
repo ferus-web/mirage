@@ -6,6 +6,7 @@
 import std/[sequtils]
 import ../runtime/shared, ../[atom, utils]
 import ./[emitter, shared, caching]
+import pretty
 
 template ir*(gen: IRGenerator, body: untyped) =
   let generator {.inject.} = deepCopy gen
@@ -154,6 +155,28 @@ proc loadBool*(
     )
   )
 
+proc castStr*(
+  gen: IRGenerator,
+  src, dest: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: CastStr,
+      arguments: @[uinteger src, uinteger dest]
+    )
+  )
+
+proc castInt*(
+  gen: IRGenerator,
+  src, dest: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: CastInt,
+      arguments: @[uinteger src, uinteger dest]
+    )
+  )
+
 proc call*(
   gen: IRGenerator,
   function: string,
@@ -165,6 +188,127 @@ proc call*(
       arguments: @[
         ident function
       ] & arguments
+    )
+  )
+
+proc loadObject*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: LoadObject,
+      arguments: @[uinteger position]
+    )
+  )
+
+proc createField*(
+  gen: IRGenerator,
+  position: uint,
+  index: int,
+  name: string
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: CreateField,
+      arguments: @[
+        uinteger position, 
+        integer index,
+        str name
+      ]
+    )
+  )
+
+# "slow"
+proc writeField*(
+  gen: IRGenerator,
+  position: uint,
+  name: string,
+  value: MAtom
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: WriteField,
+      arguments: @[
+        uinteger position,
+        str name,
+        value
+      ]
+    )
+  )
+
+# "fast"
+proc writeField*(
+  gen: IRGenerator,
+  position: uint,
+  index: int,
+  value: MAtom
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: FastWriteField,
+      arguments: @[
+        uinteger position,
+        integer index,
+        value
+      ]
+    )
+  )
+
+proc placeholder*(
+  gen: IRGenerator,
+  opCode: Ops
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: opCode
+    )
+  )
+
+proc overrideArgs*(
+  gen: IRGenerator,
+  instruction: uint,
+  arguments: seq[MAtom]
+) {.inline.} =
+  for i, _ in gen.modules:
+    var module = gen.modules[i]
+    if module.name == gen.currModule:
+      module.operations[instruction.int].arguments = arguments
+      gen.modules[i] = module
+      return
+
+  raise newException(FieldDefect, "Cannot find any clause with name: " & gen.currModule)
+
+proc equate*(
+  gen: IRGenerator,
+  a, b: uint  
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: Equate,
+      arguments: @[uinteger a, uinteger b]
+    )
+  )
+
+proc addInt*(
+  gen: IRGenerator,
+  destination, source: uint  
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: AddInt,
+      arguments: @[uinteger destination, uinteger source]
+    )
+  )
+
+proc subInt*(
+  gen: IRGenerator,
+  destination, source: uint  
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: SubInt,
+      arguments: @[uinteger destination, uinteger source]
     )
   )
 
@@ -196,4 +340,4 @@ proc newIRGenerator*(name: string): IRGenerator =
     modules: @[]
   )
 
-export shared
+export shared, Ops
