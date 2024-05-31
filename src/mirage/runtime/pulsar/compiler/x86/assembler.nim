@@ -55,6 +55,10 @@ type
     SignedGreaterThanOrEqualTo = 0xD
     SignedLessThanOrEqualTo = 0xE
     SignedGreaterThan = 0xF
+  
+  Patchable* = enum
+    paYes
+    paNo
 
   Assembler* = ref object
     output*: seq[byte]
@@ -98,3 +102,5 @@ proc fitsInI8*(op: Operand): bool {.inline.} =
 
 proc fitsInI32*(op: Operand): bool {.inline.} =
   op.kind == Imm and op.offsetOrImmediate <= int32.high.uint64
+
+

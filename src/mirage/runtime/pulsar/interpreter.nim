@@ -32,7 +32,10 @@ type
     currJumpOnErr: Option[uint]
 
     stack*: TableRef[uint, MAtom]
+    locals*: TableRef[string, uint]
+    builtins*: TableRef[string, proc(op: Operation)]
     errors*: seq[RuntimeException]
+    halt*: bool = false
     trace: ExceptionTrace
 
 proc find*(clause: Clause, id: uint): Option[Operation] {.inline.} =
@@ -49,7 +52,12 @@ proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Opt
   if id <= interpreter.clauses.len-1 and id > -1:
     some(interpreter.clauses[id])
   else:
-    none Clause
+    none(Clause)
+
+proc getClause*(interpreter: PulsarInterpreter, name: string): Option[Clause] {.inline.} =
+  for clause in interpreter.clauses:
+    if clause.name == name:
+      return clause.some()
 
 proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
   var cTok = interpreter.tokenizer.deepCopy()
@@ -84,15 +92,45 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
 
 proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) {.inline.} =
   interpreter.stack[id] = atom
+  interpreter.locals[interpreter.clauses[interpreter.currClause].name] = id
+
+proc hasBuiltin*(interpreter: PulsarInterpreter, name: string): bool {.inline.} =
+  name in interpreter.builtins
+
+proc registerBuiltin*(interpreter: PulsarInterpreter, name: string, builtin: proc(op: Operation)) {.inline.} =
+  interpreter.builtins[name] = builtin
+
+proc callBuiltin*(interpreter: PulsarInterpreter, name: string, op: Operation) {.inline.} =
+  interpreter.builtins[name](op)
 
 proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException) {.inline.} =
   if *interpreter.currJumpOnErr:
     return
-
+  
   interpreter.errors.add(exception)
+  interpreter.halt = true
+  
+  let clause = interpreter.getClause(exception.clause)
+
+  if *clause:
+    let rollback = (&clause).rollback
+
+    var mException = deepCopy(exception)
+    mException.operation = rollback.prev.int
+    let prevClause = interpreter.getClause(rollback.index.int.some)
+    print prevClause
+
+    if not *prevClause:
+      print rollback
+
+    mException.clause = (&prevClause).name
+    interpreter.throw(mException)
+
   interpreter.trace = ExceptionTrace(
-    prev: none(ExceptionTrace), # FIXME: fix this
-    next: none(ExceptionTrace), # FIXME: fix this
+    prev: if interpreter.trace != nil: 
+      interpreter.trace.some()
+    else: 
+      none(ExceptionTrace),
     clause: interpreter.currClause,
     line: interpreter.currIndex.int,
     exception: exception
@@ -100,20 +138,27 @@ proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException) {.inlin
 
 proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] {.inline.} =
   var 
-    msg = "Traceback (most recent call last):"
+    msg = "Traceback (most recent call last)"
     currTrace = interpreter.trace
+
+  if currTrace == nil:
+    return
+
+  print interpreter.trace
 
   while true:
     let clause = interpreter.getClause(currTrace.clause.some)
     assert *clause, "No clause found with ID: " & $currTrace.clause
 
+    print clause
+
     let operation = (&clause).find(currTrace.line.uint)
     assert *operation, "No operation found in clause " & $currTrace.clause & " with ID: " & $currTrace.line
-
+    
     msg &= 
-      "\n\tClause \"" & (&clause).name & "\", operation " & $currTrace.line & '\n' &
+      "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $currTrace.line & '\n' &
       "\t\t" & (&operation).expand() &
-      '\n' & $typeof(currTrace.exception) & ": " & currTrace.exception.message
+      '\n' & $typeof(currTrace.exception) & ": " & currTrace.exception.message & '\n'
     
     if *currTrace.prev:
       currTrace = &currTrace.prev
@@ -221,7 +266,7 @@ proc resolve*(
 
     op.arguments &=
       op.consume(String, "WFIELD expects a string at position 2")
-    
+
   op.rawArgs = mRawArgs
 
 proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
@@ -281,7 +326,7 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
   if *oclause:
     var clause = &oclause
 
-    clause.rollback.prev = interpreter.currIndex.int
+    clause.rollback.prev = interpreter.currClause.int
     clause.rollback.index = op.index
 
   when not defined(mirageNoJit):
@@ -347,14 +392,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     interpreter.currClause = (&clause).rollback.prev
     interpreter.currIndex = (&clause).rollback.index
   of Call:
-    if op.arguments[0].getStr() == some "print":
-      for i, x in op.arguments:
-        if i == 0: continue
-
-        let val = interpreter.get((&x.getInt()).uint)
-
-        if *val:
-          echo (&val).crush("", quote = false)
+    if interpreter.hasBuiltin(&op.arguments[0].getStr()):
+      interpreter.callBuiltin(&op.arguments[0].getStr(), op)
     else:
       let
         name = &op.arguments[0].getStr()
@@ -653,6 +692,40 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
     interpreter.addAtom(atom, oatomIndex)
     inc interpreter.currIndex
+  of Add:
+    let
+      a = &interpreter.get((&op.arguments[0].getInt()).uint)
+      b = &interpreter.get((&op.arguments[1].getInt()).uint)
+      storeIn = (&op.arguments[2].getInt()).uint
+
+    if a.kind != Integer or b.kind != UnsignedInt:
+      interpreter.throw(
+        wrongType(op.index.int, interpreter.clauses[interpreter.currClause].name, a.kind, Integer)
+      )
+    
+    if b.kind != Integer or b.kind != UnsignedInt:
+      interpreter.throw(
+        wrongType(op.index.int, interpreter.clauses[interpreter.currClause].name, a.kind, Integer)
+      )
+    
+    # FIXME: properly handle this garbage
+    let
+      aI = case a.kind
+      of Integer:
+        &a.getInt()
+      else:
+        (&a.getUint()).int
+      
+      bI = case b.kind
+      of Integer:
+        &b.getInt()
+      else: 
+        (&b.getUint()).int
+
+    interpreter.addAtom(
+      integer(aI + bI),
+      storeIn
+    )
   else:
     when defined(release):
       inc interpreter.currIndex
@@ -672,7 +745,7 @@ proc setEntryPoint*(interpreter: PulsarInterpreter, name: string) {.inline.} =
   )
 
 proc run*(interpreter: PulsarInterpreter) =
-  while true:
+  while not interpreter.halt:
     let clause = interpreter.getClause()
 
     if not *clause:
@@ -687,8 +760,24 @@ proc run*(interpreter: PulsarInterpreter) =
     interpreter.execute(&op)
 
 proc newPulsarInterpreter*(source: string): PulsarInterpreter {.inline.} =
-  PulsarInterpreter(
+  var interp = PulsarInterpreter(
     tokenizer: newTokenizer(source),
     clauses: @[],
+    builtins: newTable[string, proc(op: Operation)](),
+    locals: newTable[string, uint](),
     stack: newTable[uint, MAtom]()
   )
+  interp.registerBuiltin(
+    "print", proc(op: Operation) =
+      for i, x in op.arguments:
+        if i == 0: continue
+
+        let val = interp.get((&x.getInt()).uint)
+
+        if *val:
+          echo (&val).crush("", quote = false)
+  )
+
+  interp
+
+export Operation

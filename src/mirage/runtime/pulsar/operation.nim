@@ -7,12 +7,6 @@ import ../shared
 import ../../[atom, utils]
 import pretty
 
-when not defined(mirageNoJit) and defined(amd64):
-  import laser/photon_jit
-
-when not defined(mirageNoJit) and not defined(amd64):
-  {.warning: "-d:mirageNoJit was not supplied on a non-AMD64 platform. The JIT compiler will automatically be disabled. Expect worsened performance.".}
-
 const MirageOperationJitThreshold* {.intdefine.} = 8 # FIXME: set this to something higher
 
 type
@@ -28,7 +22,6 @@ type
     
     when not defined(mirageNoJit) and defined(amd64):
       called*: int ## How many times has this operation been called this clause execution? (used to determine if it should be JIT'd)
-      compiled*: JITFunction ## The compiled representation of this operation
 
 proc expand*(operation: Operation): string {.inline.} =
   assert operation.consumed

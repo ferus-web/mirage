@@ -47,63 +47,63 @@ type
     ## Arguments:
     ## `idx`: Integer - stack index
     ## `value`: Integer - int value
-    LoadInt = 0x01
+    LoadInt = 0x1
 
     ## Load a string onto the stack
     ## Arguments:
     ## `idx`: Integer - stack index
     ## `value`: string - str value
-    LoadStr = 0x02
+    LoadStr = 0x2
 
     ## Jump to an operation in the current clause
     ## Arguments:
     ## `idx`: Integer - operation ID
-    Jump = 0x03
+    Jump = 0x3
     
-    Add = 0x04
-    Mult = 0x05
-    Div = 0x06
-    Sub = 0x07
+    Add = 0x4
+    Mult = 0x5
+    Div = 0x6
+    Sub = 0x7
 
     ## Executes the line after this instruction if the condition is true, otherwise the line after that line.
     ## Wherever the line is, execution continues from there on.
     ## Arguments:
     ## `...`: Integer - indexes on the stack
-    Equate = 0x08
+    Equate = 0x8
 
     ## Do not execute any more lines after this, signifying an end to a clause.
     ## Arguments:
     ## value: Integer - a return value, can be NULL
-    Return = 0x09
+    Return = 0x9
 
     ## Add to a pre-existing cell on the stack, granted that it is an integer as well.
     ## Arguments:
     ## value: Integer - the index on the stack to add the value to
     ## adder: Integer - the index on the stack from which the integer is read and added to the value
-    AddInt = 0x10
+    AddInt = 0xa
 
     ## Add to a pre-existing cell on the stack, granted that it is a string as well.
     ## Arguments:
     ## value: Integer - the index on the stack to add the value to
     ## adder: Integer - the index on the stack from which the string is read and appended to the end of the value
-    AddStr = 0x11
+    AddStr = 0xb
 
     ## Subtract from a pre-existing cell on the stack, granted that it is an integer as well.
     ## Arguments:
     ## value: Integer - the index on the stack to subtract from
     ## subber: Integer - the index on the stack from which the subtraction value is read and subtracted from `value`
-    SubInt = 0x12
+    SubInt = 0xc
 
     ## Load a list
     ## Arguments:
     ## `idx`: the index on which the list is loaded
-    LoadList = 0x13
+    LoadList = 0xd
 
     ## Add an atom to a list
     ## Arguments:
     ## `idx`: the index on which the list is located
     ## `value`: Integer/String/List - any accepted atom
-    AddList = 0x14
+    AddList = 0xe
 
     ## Set a cap/limit on how many items can be added to a list.
     ## If the list already has more items than the new cap, they are removed from the list
@@ -111,53 +111,53 @@ type
     ## Arguments:
     ## `idx`: Integer - the index on which the list is located
     ## `cap`: Integer - the new list cap
-    SetCapList = 0x15
+    SetCapList = 0xf
 
     ## Get the last element of a list and remove it from the list.
     ## If the list is empty, a `Null` atom will be provided
-    PopList = 0x16
+    PopList = 0x10
 
     ## Get the first element of a list and remove it from the list.
     ## If the list is empty, a `Null` atom will be provided
-    PopListPrefix = 0x17
+    PopListPrefix = 0x11
 
     ## Cast a value on the stack to an integer and store it in another location.
-    CastInt = 0x18
+    CastInt = 0x12
 
     ## Cast a value on the stack to a string and store it in another location.
-    CastStr = 0x19
+    CastStr = 0x13
 
     ## Load an unsigned integer onto the stack
-    LoadUint = 0x20
+    LoadUint = 0x14
 
     ## Load a boolean onto the stack
-    LoadBool = 0x21
+    LoadBool = 0x15
     
     ## Swap two indices that hold atoms on the stack
-    Swap = 0x22
+    Swap = 0x16
 
     ## Jump to an operation in the clause if an error occurs whilst executing a line of code.
-    JumpOnError = 0x23
+    JumpOnError = 0x17
 
     ## Same as EQU, but compares if `a` is greater than `b`
-    GreaterThanInt = 0x24
+    GreaterThanInt = 0x18
 
     ## Same as EQU, but compares if `a` is lesser than `b`
-    LesserThanInt = 0x25
+    LesserThanInt = 0x19
     
     ## Load an object onto the stack
-    LoadObject = 0x26
+    LoadObject = 0x1a
 
     ## Create a field in an object
-    CreateField = 0x27
+    CreateField = 0x1b
 
     ## Write an atom into the field of an object without its name, just by its index.
     ## This is faster than finding the field via its name.
-    FastWriteField = 0x28
+    FastWriteField = 0x1c
 
     ## Write an atom into the field of an object without its name, just by its index.
     ## This is slower than just providing the index.
-    WriteField = 0x29
+    WriteField = 0x1d
 
 const
   OpCodeToTable* = {
