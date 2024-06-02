@@ -110,7 +110,7 @@ proc loadStr*[P: SomeUnsignedInt](
     IROperation(
       opCode: LoadStr,
       arguments: @[
-        integer position,
+        uinteger position,
         str value
       ]
     )
