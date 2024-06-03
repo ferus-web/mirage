@@ -159,6 +159,13 @@ type
     ## This is slower than just providing the index.
     WriteField = 0x1d
 
+    ## Crash the interpreter. That's it.
+    ## This opcode gets ignored in release mode.
+    CrashInterpreter = 0x1e
+
+    ## Increment an integer/unsigned integer atom by one. This just exists to avoid creating ints again and again to use for `LoadInt`
+    Increment = 0x1f
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -190,7 +197,9 @@ const
     "LOADO": LoadObject,
     "CFIELD": CreateField,
     "FWFIELD": FastWriteField,
-    "WFIELD": WriteField
+    "WFIELD": WriteField,
+    "CRASHINTERP": CrashInterpreter,
+    "INC": Increment
   }.toTable
 
   OpCodeToString* = block:

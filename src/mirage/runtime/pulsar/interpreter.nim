@@ -266,11 +266,11 @@ proc resolve*(
 
     op.arguments &=
       op.consume(String, "WFIELD expects a string at position 2")
-  of CrashInterpreter:
-    discard
   of Increment:
     op.arguments &=
       op.consume(Integer, "INC expects an integer at position 1")
+  of CrashInterpreter:
+    discard
 
   op.rawArgs = mRawArgs
 
