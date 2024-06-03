@@ -26,7 +26,7 @@ proc emitModule*(
       "\n\n# Clause/CodeModule \"" & module.name & "\"\n" &
       "# Operations: " & $module.operations.len & "\n"
   else:
-    var final: string
+    var final = "\n"
 
   final &=
     "CLAUSE " & module.name & '\n'
