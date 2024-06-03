@@ -255,6 +255,17 @@ proc writeField*(
     )
   )
 
+proc incrementInt*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: Increment,
+      arguments: @[uinteger position]
+    )
+  )
+
 proc placeholder*(
   gen: IRGenerator,
   opCode: Ops
