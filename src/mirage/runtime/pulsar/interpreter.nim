@@ -266,9 +266,9 @@ proc resolve*(
 
     op.arguments &=
       op.consume(String, "WFIELD expects a string at position 2")
-  of Increment:
+  of Increment, Decrement:
     op.arguments &=
-      op.consume(Integer, "INC expects an integer at position 1")
+      op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position 1")
   of CrashInterpreter:
     discard
 
@@ -744,6 +744,19 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
       interpreter.addAtom(integer(&atom.getInt() + 1), (&op.arguments[0].getInt()).uint)
     of UnsignedInt:
       interpreter.addAtom(uinteger(&atom.getUint() + 1), (&op.arguments[0].getInt()).uint)
+    else: discard
+
+    inc interpreter.currIndex
+  of Decrement:
+    let atom = &interpreter.get(
+      (&op.arguments[0].getInt()).uint
+    )
+
+    case atom.kind
+    of Integer:
+      interpreter.addAtom(integer(&atom.getInt() - 1), (&op.arguments[0].getInt()).uint)
+    of UnsignedInt:
+      interpreter.addAtom(uinteger(&atom.getUint() - 1), (&op.arguments[0].getInt()).uint)
     else: discard
 
     inc interpreter.currIndex

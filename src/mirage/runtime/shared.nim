@@ -166,6 +166,9 @@ type
     ## Increment an integer/unsigned integer atom by one. This just exists to avoid creating ints again and again to use for `LoadInt`
     Increment = 0x1f
 
+    ## Decrement an integer/unsigned integer atom by one. This just exists to avoid creating ints again and again to use for `LoadInt`.
+    Decrement = 0x20
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -199,7 +202,8 @@ const
     "FWFIELD": FastWriteField,
     "WFIELD": WriteField,
     "CRASHINTERP": CrashInterpreter,
-    "INC": Increment
+    "INC": Increment,
+    "DEC": Decrement
   }.toTable
 
   OpCodeToString* = block:
