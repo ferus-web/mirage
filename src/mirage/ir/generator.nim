@@ -266,6 +266,17 @@ proc incrementInt*(
     )
   )
 
+proc decrementInt*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: Decrement,
+      arguments: @[uinteger position]
+    )
+  )
+
 proc placeholder*(
   gen: IRGenerator,
   opCode: Ops
