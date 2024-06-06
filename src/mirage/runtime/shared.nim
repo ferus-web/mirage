@@ -169,6 +169,18 @@ type
     ## Decrement an integer/unsigned integer atom by one. This just exists to avoid creating ints again and again to use for `LoadInt`.
     Decrement = 0x20
 
+    ## Multiply a vector with 4 integers against another vector with 4 integers.
+    Mult4xBatch = 0x21
+
+    ## Multiply a vector with 3 integers against another vector with 3 integers.
+    Mult3xBatch = 0x22
+
+    ## Multiply a vector with 8 integers against another vector with 8 integers.
+    Mult8xBatch = 0x23
+
+    ## Multiply a vector with 2 integers against another vector with 2 integers.
+    Mult2xBatch = 0x24
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -203,7 +215,11 @@ const
     "WFIELD": WriteField,
     "CRASHINTERP": CrashInterpreter,
     "INC": Increment,
-    "DEC": Decrement
+    "DEC": Decrement,
+    "THREEMULT": Mult3xBatch,
+    "FOURMULT": Mult4xBatch,
+    "EIGHTMULT": Mult8xBatch,
+    "TWOMULT": Mult2xBatch
   }.toTable
 
   OpCodeToString* = block:

@@ -3,11 +3,14 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[tables, options]
+import std/[math, tables, options]
 import ../../[atom, utils]
 import ../[shared, tokenizer, exceptions]
 import ./[operation, bytecodeopsetconv]
 import pretty
+
+when not defined(mirageNoSimd):
+  import nimsimd/sse2
 
 type
   Clause* = ref object
@@ -272,6 +275,18 @@ proc resolve*(
       op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position 1")
   of CrashInterpreter:
     discard
+  of Mult3xBatch:
+    for i in 1 .. 7:
+      op.arguments &=
+        op.consume(Integer, "THREEMULT expects an integer at position " & $i)
+  of Mult4xBatch:
+    for i in 1 .. 9:
+      op.arguments &=
+        op.consume(Integer, "FOURMULT expects an integer at position " & $i)
+  of Mult8xBatch:
+    for i in 1 .. 17:
+      op.arguments &=
+        op.consume(Integer, "EIGHTMULT expects an integer at position " & $i)
 
   op.rawArgs = mRawArgs
 
@@ -761,6 +776,35 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     else: discard
 
     inc interpreter.currIndex
+  of Mult2xBatch:
+    let 
+      pos1 = &op.arguments[0].getInt()
+      pos2 = &op.arguments[1].getInt()
+
+    var
+      vec1 = [
+        &(&interpreter.get((&op.arguments[2].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[3].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[4].getInt()).uint)).getInt()
+      ]
+      vec2 = [
+        &(&interpreter.get((&op.arguments[5].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[6].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[7].getInt()).uint)).getInt()
+      ]
+
+    var res: array[2, int]
+
+    when not defined(mirageNoSimd):
+      let
+        svec1 = mm_loadu_si128(vec1.addr)
+        svec2 = mm_loadu_si128(vec2.addr)
+        simdMulRes = mm_mullo_epi16(svec1, svec2)
+      
+      mm_storeu_si128(res.addr, simdMulRes)
+    
+    interpreter.addAtom(integer(res[0]), pos1)
+    interpreter.addAtom(integer(res[1]), pos2)
   else:
     when defined(release):
       inc interpreter.currIndex

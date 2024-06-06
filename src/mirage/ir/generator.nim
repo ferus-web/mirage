@@ -334,6 +334,23 @@ proc subInt*(
     )
   )
 
+proc mult2xBatch*(
+  gen: IRGenerator,
+  vec1, vec2: array[uint, 2] # pos to vector
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: Mult2xBatch,
+      arguments: @[
+        uinteger vec1[0],
+        uinteger vec1[1],
+
+        uinteger vec2[0],
+        uinteger vec2[1]
+      ]
+    )
+  )
+
 proc emit*(gen: IRGenerator): string {.inline.} =
   let cached = retrieve(gen.name, gen)
   if *cached:
