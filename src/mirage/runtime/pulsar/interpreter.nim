@@ -235,7 +235,8 @@ proc resolve*(
       op.arguments &=
         op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
   of Return:
-    discard # TODO: implement (xTrayambak)
+    op.arguments &=
+      op.consume(Integer, "RETURN expects an integer at position 1")
   of SetCapList:
     op.arguments &=
       op.consume(Integer, "SCAPL expects an integer at position 1")

@@ -131,12 +131,12 @@ proc loadUint*[P: SomeUnsignedInt](
 
 proc returnFn*(
   gen: IRGenerator,
-  value: MAtom
+  position: int = -1
 ): uint {.inline, discardable.} =
   gen.addOp(
     IROperation(
       opCode: Return,
-      arguments: @[value]
+      arguments: @[integer position]
     )
   )
 
