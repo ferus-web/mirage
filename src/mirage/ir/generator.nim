@@ -336,7 +336,7 @@ proc subInt*(
 
 proc mult2xBatch*(
   gen: IRGenerator,
-  vec1, vec2: array[uint, 2] # pos to vector
+  vec1, vec2: array[2, uint] # pos to vector
 ): uint {.inline, discardable.} =
   gen.addOp(
     IROperation(
