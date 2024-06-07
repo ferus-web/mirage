@@ -807,8 +807,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
       
       mm_storeu_si128(res.addr, simdMulRes)
     
-    interpreter.addAtom(integer(res[0]), pos1)
-    interpreter.addAtom(integer(res[1]), pos2)
+    interpreter.addAtom(integer(res[0]), pos1.uint)
+    interpreter.addAtom(integer(res[1]), pos2.uint)
   else:
     when defined(release):
       inc interpreter.currIndex
