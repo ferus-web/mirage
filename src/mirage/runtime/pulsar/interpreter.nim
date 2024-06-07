@@ -287,6 +287,10 @@ proc resolve*(
     for i in 1 .. 17:
       op.arguments &=
         op.consume(Integer, "EIGHTMULT expects an integer at position " & $i)
+  of Mult2xBatch:
+    for i in 1 .. 5:
+      op.arguments &=
+        op.consume(Integer, "TWOMULT expects an integer at position " & $i)
 
   op.rawArgs = mRawArgs
 
