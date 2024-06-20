@@ -3,7 +3,7 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[math, tables, options]
+import std/[tables, options]
 import ../../[atom, utils]
 import ../[shared, tokenizer, exceptions]
 import ./[operation, bytecodeopsetconv]
@@ -11,21 +11,28 @@ import pretty
 
 when not defined(mirageNoSimd):
   import nimsimd/sse2
+else:
+  {.
+    warn:
+      "SIMD support has been explicitly disabled. There will be visible slowdowns in batch operations. If this was a mistake, check your build configurations for `-d:mirageNoSimd`"
+  .}
 
 type
-  Clause* = ref object
+  Clause* = object
     name*: string
     operations*: seq[Operation]
 
     rollback*: ClauseRollback
 
-  JumpPoint* {.union.} = ref object
-    clause*: int
-    index*: uint
+  InvalidRegisterRead* = object of Defect
 
-  ClauseRollback* = ref object
-    prev*: int = int.low
-    index*: uint = 1
+  ClauseRollback* = object
+    clause*: int = int.low
+    opIndex*: uint = 1
+
+  Registers* = object
+    retVal*: Option[MAtom]
+    callArgs*: seq[MAtom]
 
   PulsarInterpreter* = ref object
     tokenizer: Tokenizer
@@ -34,35 +41,49 @@ type
     clauses: seq[Clause]
     currJumpOnErr: Option[uint]
 
-    stack*: TableRef[uint, MAtom]
-    locals*: TableRef[string, uint]
-    builtins*: TableRef[string, proc(op: Operation)]
+    stack*: Table[uint, MAtom]
+    locals*: Table[uint, string]
+    builtins*: Table[string, proc(op: Operation)]
     errors*: seq[RuntimeException]
     halt*: bool = false
     trace: ExceptionTrace
 
-proc find*(clause: Clause, id: uint): Option[Operation] {.inline.} =
+    registers*: Registers
+
+const
+  SequenceBasedRegisters* = [
+    some(1)
+  ]
+
+{.push checks: off, inline.}
+proc find*(clause: Clause, id: uint): Option[Operation] =
   for op in clause.operations:
     if op.index == id:
       return some op
 
-proc get*(interpreter: PulsarInterpreter, id: uint): Option[MAtom] {.inline.} =
-  if interpreter.stack.contains(id):
-    return some interpreter.stack[id]
-
-proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Option[Clause] {.inline.} =
+proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Option[Clause] =
   let id = if *id: &id else: interpreter.currClause
   if id <= interpreter.clauses.len-1 and id > -1:
     some(interpreter.clauses[id])
   else:
     none(Clause)
 
-proc getClause*(interpreter: PulsarInterpreter, name: string): Option[Clause] {.inline.} =
+proc get*(interpreter: PulsarInterpreter, id: uint, ignoreLocalityRules: bool = false): Option[MAtom] =
+  if interpreter.stack.contains(id):
+    let allowAccess = interpreter.locals[id] == (&interpreter.getClause()).name or ignoreLocalityRules
+    if interpreter.locals.contains(id) and 
+      not allowAccess:
+      return
+
+    return some(interpreter.stack[id])
+
+proc getClause*(interpreter: PulsarInterpreter, name: string): Option[Clause] =
   for clause in interpreter.clauses:
     if clause.name == name:
       return clause.some()
+{.pop.}
 
-proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
+proc analyze*(interpreter: PulsarInterpreter) =
   var cTok = interpreter.tokenizer.deepCopy()
   while not interpreter.tokenizer.isEof:
     let 
@@ -93,87 +114,73 @@ proc analyze*(interpreter: PulsarInterpreter) {.inline.} =
       interpreter.tokenizer.pos = cTok.pos
       continue
 
-proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) {.inline.} =
+{.push checks: off, inline.}
+proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) =
   interpreter.stack[id] = atom
-  interpreter.locals[interpreter.clauses[interpreter.currClause].name] = id
+  interpreter.locals[id] = interpreter.clauses[interpreter.currClause].name
 
-proc hasBuiltin*(interpreter: PulsarInterpreter, name: string): bool {.inline.} =
+proc hasBuiltin*(interpreter: PulsarInterpreter, name: string): bool =
   name in interpreter.builtins
 
-proc registerBuiltin*(interpreter: PulsarInterpreter, name: string, builtin: proc(op: Operation)) {.inline.} =
+proc registerBuiltin*(interpreter: PulsarInterpreter, name: string, builtin: proc(op: Operation)) =
   interpreter.builtins[name] = builtin
 
-proc callBuiltin*(interpreter: PulsarInterpreter, name: string, op: Operation) {.inline.} =
+proc callBuiltin*(interpreter: PulsarInterpreter, name: string, op: Operation) =
   interpreter.builtins[name](op)
+{.pop.}
 
-proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException) {.inline.} =
+proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException, bubbling: bool = false) =
   if *interpreter.currJumpOnErr:
-    return
+    return # TODO: implement error handling
   
-  interpreter.errors.add(exception)
+  var exception = deepCopy(exception)
+
   interpreter.halt = true
-  
-  let clause = interpreter.getClause(exception.clause)
+
+  let clause = if not bubbling:
+    interpreter.getClause(
+      interpreter.currClause.some
+    )
+  else:
+    interpreter.getClause(exception.clause)
+
+  if *clause and not bubbling:
+    exception.operation = interpreter.currIndex
+    exception.clause = (&clause).name
+
+  interpreter.errors.add(exception)
 
   if *clause:
-    let rollback = (&clause).rollback
+    let 
+      rollback = (&clause).rollback
+      prevClause = interpreter.getClause(rollback.clause.int.some)
 
-    var mException = deepCopy(exception)
-    mException.operation = rollback.prev.int
-    let prevClause = interpreter.getClause(rollback.index.int.some)
-    print prevClause
+    var bubblingException = deepCopy(exception)
+    bubblingException.operation = rollback.opIndex
 
-    if not *prevClause:
-      print rollback
-
-    mException.clause = (&prevClause).name
-    interpreter.throw(mException)
-
-  interpreter.trace = ExceptionTrace(
+    if *prevClause:
+      bubblingException.clause = (&prevClause).name
+      interpreter.throw(bubblingException, bubbling = true)
+  
+  var newTrace = ExceptionTrace(
     prev: if interpreter.trace != nil: 
       interpreter.trace.some()
     else: 
       none(ExceptionTrace),
     clause: interpreter.currClause,
-    line: interpreter.currIndex.int,
+    index: interpreter.currIndex,
     exception: exception
   )
 
-proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] {.inline.} =
-  var 
-    msg = "Traceback (most recent call last)"
-    currTrace = interpreter.trace
+  if interpreter.trace != nil:
+    interpreter.trace.next = some(newTrace)
 
-  if currTrace == nil:
-    return
-
-  print interpreter.trace
-
-  while true:
-    let clause = interpreter.getClause(currTrace.clause.some)
-    assert *clause, "No clause found with ID: " & $currTrace.clause
-
-    print clause
-
-    let operation = (&clause).find(currTrace.line.uint)
-    assert *operation, "No operation found in clause " & $currTrace.clause & " with ID: " & $currTrace.line
-    
-    msg &= 
-      "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $currTrace.line & '\n' &
-      "\t\t" & (&operation).expand() &
-      '\n' & $typeof(currTrace.exception) & ": " & currTrace.exception.message & '\n'
-    
-    if *currTrace.prev:
-      currTrace = &currTrace.prev
-    else:
-      break
-
-  some(msg)
+  interpreter.trace = newTrace
 
 proc resolve*(
   interpreter: PulsarInterpreter, 
-  clause: Clause, op: Operation
-) {.inline.} =
+  clause: Clause, op: var Operation
+) =
   let mRawArgs = deepCopy(op.rawArgs)
   op.arguments.reset()
 
@@ -242,7 +249,10 @@ proc resolve*(
       op.consume(Integer, "RETURN expects an integer at position 1")
   of SetCapList:
     op.arguments &=
-      op.consume(Integer, "SCAPL expects an integer at position 1")
+      op.consume(Integer, "SCAPL expects an integer at position 1")   
+
+    op.arguments &=
+      op.consume(Integer, "SCAPL expects an integer at position 2")
   of JumpOnError:
     op.arguments &=
       op.consume(Integer, "JMPE expects an integer at position 1")
@@ -279,22 +289,81 @@ proc resolve*(
     for i in 1 .. 7:
       op.arguments &=
         op.consume(Integer, "THREEMULT expects an integer at position " & $i)
-  of Mult4xBatch:
-    for i in 1 .. 9:
-      op.arguments &=
-        op.consume(Integer, "FOURMULT expects an integer at position " & $i)
-  of Mult8xBatch:
-    for i in 1 .. 17:
-      op.arguments &=
-        op.consume(Integer, "EIGHTMULT expects an integer at position " & $i)
   of Mult2xBatch:
     for i in 1 .. 5:
       op.arguments &=
         op.consume(Integer, "TWOMULT expects an integer at position " & $i)
+  of MarkHomogenous:
+    op.arguments &=
+      op.consume(Integer, "MARKHOMO expects an integer at position 1")
+  of LoadNull:
+    op.arguments &=
+      op.consume(Integer, "LOADN expects an integer at position 1")
+  of MarkGlobal:
+    op.arguments &=
+      op.consume(Integer, "GLOB expects an integer at position 1")
+  of ReadRegister:
+    op.arguments &=
+      op.consume(Integer, "RREG expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "RREG expects an integer at position 2")
+    
+    try:
+      op.arguments &=
+        op.consume(Integer, "RREG expects an integer at position 3 when accessing a sequence based register")
+    except ValueError as exc:
+      if op.arguments[1].getInt() in SequenceBasedRegisters:
+        raise exc
+  of PassArgument:
+    op.arguments &=
+      op.consume(Integer, "PARG expects an integer at position 1")
+  of ResetArgs:
+    discard
 
   op.rawArgs = mRawArgs
 
-proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
+proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
+  var 
+    msg = "Traceback (most recent call last)"
+    currTrace = interpreter.trace
+  
+  if currTrace == nil:
+    return
+
+  # traverse down the tree to find the bottom of the stack trace
+  while currTrace != nil:
+    if *currTrace.prev:
+      currTrace = &currTrace.prev
+    else:
+      break
+  
+  # TODO: optimize this a bit, we could just cache the traces as we're traversing the tree downwards
+  while true:
+    let clause = interpreter.getClause(currTrace.clause.some)
+    assert *clause, "No clause found with ID: " & $currTrace.clause
+
+    var operation = &(&clause).find(currTrace.index)
+    interpreter.resolve(&clause, operation)
+
+    let line = # FIXME: weird stuff
+      if currTrace.exception.operation < 2:
+        currTrace.exception.operation
+      else:
+        currTrace.exception.operation - 1
+
+    msg &= "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $(line)
+
+    if *currTrace.next:
+      currTrace = &currTrace.next
+    else:
+      msg &= "\n\t\t" & operation.expand() &
+      "\n\n" & $typeof(currTrace.exception) & ": " & currTrace.exception.message & '\n'
+      break
+
+  some(msg)
+
+proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) =
   let 
     a = interpreter.get(src)
     b = interpreter.get(dest)
@@ -308,15 +377,17 @@ proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
   
   case satom.kind
   of Integer:
+    if datom.kind != Integer:
+      interpreter.throw(
+        wrongType(Integer, datom.kind)
+      )
+      return
+
     let
       n1 = &satom.getInt()
       n2 = &datom.getInt()
     
-    # FIXME: remove this dumb check with something more sensible
-    if n1 >= 4611686018427387904 or n2 >= 4611686018427387904:
-      return
-
-    var aiAtom = integer n1 + n2
+    var aiAtom = integer(n1 + n2)
 
     interpreter.addAtom(
       aiAtom,
@@ -324,14 +395,31 @@ proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) {.inline.} =
     )
   of String:
     let
-      n1 = &satom.getStr()
-      n2 = &datom.getStr()
+      str1 = &satom.getStr()
+      str2 = &datom.getStr()
     
-    var asAtom = str n1 & n2
+    var asAtom = str(str1 & str2)
+
+    interpreter.addAtom(asAtom, src)
+  of Sequence:
+    let
+      seq1 = &satom.getSequence()
+      seq2 = &datom.getSequence()
+
+    var asAtom = sequence(seq1 & seq2)
 
     interpreter.addAtom(asAtom, src)
   else:
     discard
+
+proc zeroOut*(
+  interpreter: PulsarInterpreter,
+  index: uint
+) {.inline.} =
+  ## Remove a stack index.
+  ## 
+  ## WARNING: **The index is then left empty and accesses to it will raise KeyErrors, so make sure to add something in its place unless it is truly no longer needed!**
+  interpreter.stack.del(index)
 
 proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
   var
@@ -341,18 +429,21 @@ proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
   if not *atomA or not *atomB:
     return
 
+  interpreter.zeroOut(a.uint)
+  interpreter.zeroOut(b.uint)
+
   swap(atomA, atomB)
   interpreter.addAtom(&atomA, a.uint)
   interpreter.addAtom(&atomB, b.uint)
 
-proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
+proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   let oclause = interpreter.getClause()
 
   if *oclause:
     var clause = &oclause
 
-    clause.rollback.prev = interpreter.currClause.int
-    clause.rollback.index = op.index
+    clause.rollback.clause = interpreter.currClause.int
+    clause.rollback.opIndex = op.index
 
   when not defined(mirageNoJit):
     inc op.called
@@ -377,10 +468,6 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     )
     inc interpreter.currIndex
   of Equate:
-    if op.arguments.len < 2:
-      inc interpreter.currIndex
-      return
-
     var 
       prev = interpreter.get(uint(&op.arguments[0].getInt()))
       accumulator = false
@@ -414,8 +501,14 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
       inc interpreter.currIndex
       return
 
-    interpreter.currClause = (&clause).rollback.prev
-    interpreter.currIndex = (&clause).rollback.index
+    let idx = (&op.arguments[0].getInt()).uint
+    
+    # write the return value to the `retVal` register
+    interpreter.registers.retVal = interpreter.get(idx)
+
+    # revert back to where we left off in the previous clause (or exit if this was the final clause - that's handled by the logic in `run`)
+    interpreter.currClause = (&clause).rollback.clause
+    interpreter.currIndex = (&clause).rollback.opIndex
   of Call:
     if interpreter.hasBuiltin(&op.arguments[0].getStr()):
       interpreter.callBuiltin(&op.arguments[0].getStr(), op)
@@ -434,8 +527,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
         let oldClause = &interpreter.getClause()
         var newClause = &clause
 
-        newClause.rollback.prev = interpreter.currClause
-        newClause.rollback.index = interpreter.currIndex
+        newClause.rollback.clause = interpreter.currClause
+        newClause.rollback.opIndex = interpreter.currIndex + 1 # otherwise we'll get stuck in an infinite recursion
 
         interpreter.currClause = index
         interpreter.clauses[interpreter.currClause] = newClause
@@ -499,10 +592,18 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     if list.kind != Sequence:
       inc interpreter.currIndex
       return # TODO: type errors
+    
+    if list.sequence.len - 1 > list.getCap():
+      raise newException(AtomOverflowError, "Attempt to insert element beyond atom's limit of " & $(&list.lCap) & " items")
 
-    if *list.cap and list.sequence.len + 1 < &list.cap:
-      inc interpreter.currIndex
-      return
+    let inferredType =
+      if list.sequence.len > 0:
+        some(list.sequence[0].kind)
+      else:
+        none(MAtomKind)
+
+    if *inferredType and (&source).kind != &inferredType:
+      raise newException(SequenceError, "Attempt to add different type to sequence's homogenous type: " & $(&source).kind)
 
     list.sequence.add(&source)
 
@@ -582,8 +683,8 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     let
       aI = (&a).getInt()
       aB = (&b).getInt()
-
-    interpreter.stack[aIdx.uint] = integer(&aI + &aB)
+    
+    interpreter.stack[aIdx.uint] = integer(&aI - &aB)
     inc interpreter.currIndex
   of JumpOnError:
     let beforeExecErrors = interpreter.errors.len
@@ -725,12 +826,12 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
 
     if a.kind != Integer or b.kind != UnsignedInt:
       interpreter.throw(
-        wrongType(op.index.int, interpreter.clauses[interpreter.currClause].name, a.kind, Integer)
+        wrongType(a.kind, Integer)
       )
     
     if b.kind != Integer or b.kind != UnsignedInt:
       interpreter.throw(
-        wrongType(op.index.int, interpreter.clauses[interpreter.currClause].name, a.kind, Integer)
+        wrongType(a.kind, Integer)
       )
     
     # FIXME: properly handle this garbage
@@ -788,27 +889,134 @@ proc execute*(interpreter: PulsarInterpreter, op: Operation) {.inline.} =
     var
       vec1 = [
         &(&interpreter.get((&op.arguments[2].getInt()).uint)).getInt(),
-        &(&interpreter.get((&op.arguments[3].getInt()).uint)).getInt(),
-        &(&interpreter.get((&op.arguments[4].getInt()).uint)).getInt()
+        &(&interpreter.get((&op.arguments[3].getInt()).uint)).getInt()
       ]
       vec2 = [
-        &(&interpreter.get((&op.arguments[5].getInt()).uint)).getInt(),
-        &(&interpreter.get((&op.arguments[6].getInt()).uint)).getInt(),
-        &(&interpreter.get((&op.arguments[7].getInt()).uint)).getInt()
+        &(&interpreter.get((&op.arguments[4].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[5].getInt()).uint)).getInt()
       ]
 
     var res: array[2, int]
 
     when not defined(mirageNoSimd):
+      # fast path via SIMD
       let
         svec1 = mm_loadu_si128(vec1.addr)
         svec2 = mm_loadu_si128(vec2.addr)
         simdMulRes = mm_mullo_epi16(svec1, svec2)
       
       mm_storeu_si128(res.addr, simdMulRes)
+    else:
+      # slow path
+      res = [
+        vec1[0] * vec2[0],
+        vec1[1] * vec2[1]
+      ]
     
     interpreter.addAtom(integer(res[0]), pos1.uint)
     interpreter.addAtom(integer(res[1]), pos2.uint)
+  of Mult3xBatch:
+    let
+      pos1 = &op.arguments[0].getInt()
+      pos2 = &op.arguments[1].getInt()
+      pos3 = &op.arguments[2].getInt()
+
+    var
+      vec1 = [
+        &(&interpreter.get((&op.arguments[3].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[4].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[5].getInt()).uint)).getInt()
+      ]
+      
+      vec2 = [
+        &(&interpreter.get((&op.arguments[6].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[7].getInt()).uint)).getInt(),
+        &(&interpreter.get((&op.arguments[8].getInt()).uint)).getInt()
+      ]
+
+      res: array[3, int]
+
+    when not defined(mirageNoSimd):
+      # fast path via SIMD
+      let
+        svec1 = mm_loadu_si128(vec1.addr)
+        svec2 = mm_loadu_si128(vec2.addr)
+        simdMulRes = mm_mullo_epi16(svec1, svec2)
+
+      mm_storeu_si128(res.addr, simdMulRes)
+    else:
+      res = [
+        vec1[0] * vec2[0],
+        vec1[1] * vec2[1],
+        vec1[2] * vec2[2]
+      ]
+
+    interpreter.addAtom(integer(res[0]), pos1.uint)
+    interpreter.addAtom(integer(res[1]), pos2.uint)
+    interpreter.addAtom(integer(res[2]), pos3.uint)
+  of SetCapList:
+    let idx = (&op.arguments[0].getInt()).uint
+    var atom = &interpreter.get(idx)
+
+    atom.setCap(&op.arguments[1].getInt())
+    interpreter.addAtom(atom, idx)
+    inc interpreter.currIndex
+  of MarkHomogenous:
+    let idx = (&op.arguments[0].getInt()).uint
+    var atom = &interpreter.get(idx)
+
+    atom.markHomogenous()
+    interpreter.addAtom(atom, idx)
+    inc interpreter.currIndex
+  of LoadNull:
+    let idx = (&op.arguments[0].getInt()).uint
+
+    interpreter.addAtom(null(), idx)
+    inc interpreter.currIndex
+  of MarkGlobal:
+    let idx = (&op.arguments[0].getInt()).uint
+    interpreter.locals.del(idx)
+    inc interpreter.currIndex
+  of ReadRegister:
+    let
+      idx = (&op.arguments[0].getInt()).uint
+      regIndex = if op.arguments.len > 2:
+        2
+      else:
+        1
+      regId = (&op.arguments[regIndex].getInt())
+
+    case regId
+    of 0:
+      # 0 - retval register
+      interpreter.addAtom(
+        if *interpreter.registers.retVal:
+          &interpreter.registers.retVal
+        else:
+          null(),
+        idx
+      )
+    of 1:
+      # 1 - callargs register
+      interpreter.addAtom(
+        interpreter.registers.callArgs[&op.arguments[1].getInt() - 1],
+        idx
+      )
+    else:
+      raise newException(InvalidRegisterRead, "Attempt to read from non-existant register " & $regId)
+    
+    inc interpreter.currIndex
+  of PassArgument:
+    # append to callArgs register
+    let
+      idx = (&op.arguments[0].getInt()).uint
+      value = &interpreter.get(idx)
+
+    interpreter.registers.callArgs.add(value)
+    inc interpreter.currIndex
+  of ResetArgs:
+    interpreter.registers.callArgs.reset()
+    inc interpreter.currIndex
   else:
     when defined(release):
       inc interpreter.currIndex
@@ -829,26 +1037,30 @@ proc setEntryPoint*(interpreter: PulsarInterpreter, name: string) {.inline.} =
 
 proc run*(interpreter: PulsarInterpreter) =
   while not interpreter.halt:
-    let clause = interpreter.getClause()
+    let cls = interpreter.getClause()
 
-    if not *clause:
+    if not *cls:
       break
 
-    let op = (&clause).find(interpreter.currIndex)
+    let
+      clause = &cls
+      op = clause.find(interpreter.currIndex)
     
     if not *op:
       break
 
-    interpreter.resolve(&clause, &op)
-    interpreter.execute(&op)
+    var operation = deepCopy(&op)
+    
+    interpreter.resolve(clause, operation)
+    interpreter.execute(operation)
 
-proc newPulsarInterpreter*(source: string): PulsarInterpreter {.inline.} =
+proc newPulsarInterpreter*(source: string): PulsarInterpreter =
   var interp = PulsarInterpreter(
     tokenizer: newTokenizer(source),
     clauses: @[],
-    builtins: newTable[string, proc(op: Operation)](),
-    locals: newTable[string, uint](),
-    stack: newTable[uint, MAtom]()
+    builtins: initTable[string, proc(op: Operation)](),
+    locals: initTable[uint, string](),
+    stack: initTable[uint, MAtom]()
   )
   interp.registerBuiltin(
     "print", proc(op: Operation) =

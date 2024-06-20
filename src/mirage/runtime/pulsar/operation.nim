@@ -2,7 +2,7 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/options
+import std/[options, tables]
 import ../shared
 import ../../[atom, utils]
 import pretty
@@ -10,7 +10,7 @@ import pretty
 const MirageOperationJitThreshold* {.intdefine.} = 8 # FIXME: set this to something higher
 
 type
-  Operation* = ref object
+  Operation* = object
     index*: uint64
 
     opcode*: Ops
@@ -24,8 +24,8 @@ type
       called*: int ## How many times has this operation been called this clause execution? (used to determine if it should be JIT'd)
 
 proc expand*(operation: Operation): string {.inline.} =
-  assert operation.consumed
-  var expanded = $operation.opcode
+  assert operation.consumed, "Attempt to expand operation that hasn't been consumed. This was most likely caused by a badly initialized exception."
+  var expanded = OpCodeToString[operation.opCode]
 
   for arg in operation.arguments:
     expanded &= ' ' & $arg.crush("")
@@ -36,7 +36,7 @@ proc shouldCompile*(operation: Operation): bool {.inline, noSideEffect, gcsafe.}
   operation.called >= MirageOperationJitThreshold
 
 proc consume*(
-  operation: Operation, 
+  operation: var Operation, 
   kind: MAtomKind, expects: string, 
   enforce: bool = true,
   position: Option[int] = none(int)
@@ -53,8 +53,8 @@ proc consume*(
     of tkQuotedString: String
     of tkInteger: Integer
     else: Null
-  
-  if not *position:
+
+  if not *position and operation.rawArgs.len > 1:
     operation.rawArgs = deepCopy(operation.rawArgs[1 ..< operation.rawArgs.len])
   
   if rawType != kind and raw.kind != tkIdent and enforce:

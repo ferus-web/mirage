@@ -4,8 +4,10 @@
 
 import std/options
 
-proc `*`*[T](opt: Option[T]): bool {.inline, noSideEffect, gcsafe.} =
+{.push checks: off, inline, noSideEffect, gcsafe.}
+proc `*`*[T](opt: Option[T]): bool =
   opt.isSome
 
-proc `&`*[T](opt: Option[T]): T {.inline, noSideEffect, gcsafe.} =
+proc `&`*[T](opt: Option[T]): T =
   unsafeGet opt
+{.pop.}

@@ -3,10 +3,8 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[sequtils]
 import ../runtime/shared, ../[atom, utils]
 import ./[emitter, shared, caching]
-import pretty
 
 template ir*(gen: IRGenerator, body: untyped) =
   let generator {.inject.} = deepCopy gen
@@ -61,6 +59,25 @@ proc loadInt*[V: SomeInteger](
     )
   )
 
+proc loadInt*(
+  gen: IRGenerator,
+  position: uint,
+  value: MAtom
+): uint {.inline, discardable.} =
+  when not defined(danger):
+    if value.kind != Integer:
+      raise newException(ValueError, "Attempt to load " & $value.kind & " as an integer.")
+
+  gen.addOp(
+    IROperation(
+      opCode: LoadInt,
+      arguments: @[
+        uinteger position,
+        value
+      ]
+    )
+  )
+
 proc loadList*(
   gen: IRGenerator,
   position: uint
@@ -101,9 +118,9 @@ proc jump*(
     )
   )
 
-proc loadStr*[P: SomeUnsignedInt](
+proc loadStr*(
   gen: IRGenerator,
-  position: P,
+  position: uint,
   value: string
 ): uint {.inline, discardable.} =
   gen.addOp(
@@ -112,6 +129,73 @@ proc loadStr*[P: SomeUnsignedInt](
       arguments: @[
         uinteger position,
         str value
+      ]
+    )
+  )
+
+proc loadStr*(
+  gen: IRGenerator,
+  position: uint,
+  value: MAtom
+): uint =
+  when not defined(danger):
+    if value.kind != String:
+      raise newException(ValueError, "Attempt to load " & $value.kind & " as a string.")
+  
+  gen.addOp(
+    IROperation(
+      opCode: LoadStr,
+      arguments: @[uinteger position, value]
+    )
+  )
+
+proc loadNull*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: LoadNull,
+      arguments: @[uinteger position]
+    )
+  )
+
+proc markGlobal*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: MarkGlobal,
+      arguments: @[uinteger position]
+    )
+  )
+
+proc readRegister*(
+  gen: IRGenerator,
+  position: uint,
+  register: Register
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: ReadRegister,
+      arguments: @[uinteger position, integer int(register)]
+    )
+  )
+
+proc readRegister*(
+  gen: IRGenerator,
+  position: uint,
+  index: uint,
+  register: Register
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: ReadRegister,
+      arguments: @[
+        uinteger position,
+        uinteger index,
+        integer int(register)
       ]
     )
   )
@@ -155,6 +239,21 @@ proc loadBool*(
     )
   )
 
+proc loadBool*(
+  gen: IRGenerator,
+  position: uint,
+  value: MAtom
+): uint =
+  gen.addOp(
+    IROperation(
+      opCode: LoadBool,
+      arguments: @[
+        uinteger position,
+        value
+      ]
+    )
+  )
+
 proc castStr*(
   gen: IRGenerator,
   src, dest: uint
@@ -180,7 +279,7 @@ proc castInt*(
 proc call*(
   gen: IRGenerator,
   function: string,
-  arguments: seq[MAtom]
+  arguments: seq[MAtom] = @[]
 ): uint {.inline, discardable.} =
   gen.addOp(
     IROperation(
@@ -348,6 +447,38 @@ proc mult2xBatch*(
         uinteger vec2[0],
         uinteger vec2[1]
       ]
+    )
+  )
+
+proc setCap*(
+  gen: IRGenerator,
+  source: uint,
+  cap: int
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: SetCapList,
+      arguments: @[uinteger source, integer cap]
+    )
+  )
+
+proc passArgument*(
+  gen: IRGenerator,
+  position: uint
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: PassArgument,
+      arguments: @[uinteger position]
+    )
+  )
+
+proc resetArgs*(
+  gen: IRGenerator
+): uint {.inline, discardable.} =
+  gen.addOp(
+    IROperation(
+      opCode: ResetArgs
     )
   )
 

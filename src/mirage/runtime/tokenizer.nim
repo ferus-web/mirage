@@ -4,9 +4,7 @@
 ## Copyright (C) Trayambak Rai 2024
 
 import std/[options, strutils, tables, math]
-import ../utils
 import ./shared
-import pretty
 
 type
   TokenizerDefect* = object of Defect

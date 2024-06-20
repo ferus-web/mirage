@@ -18,17 +18,22 @@ type
     Boolean = 6
     Object = 7
 
+  AtomOverflowError* = object of CatchableError
+  SequenceError* = object of CatchableError
+
   MAtom* = object
     case kind*: MAtomKind
     of String:
       str*: string
+      sCap*: Option[int]
     of Ident:
       ident*: string
     of Integer:
       integer*: int
     of Sequence:
       sequence*: seq[MAtom]
-      cap*: Option[int]
+      lCap*: Option[int]
+      lHomogenous*: bool = false
     of UnsignedInt:
       uinteger*: uint
     of Boolean:
@@ -48,6 +53,9 @@ proc `=destroy`*(dest: MAtom) =
     `=destroy`(dest.ident)
   of Sequence:
     for atom in dest.sequence:
+      `=destroy`(atom)
+  of Object:
+    for atom in dest.values:
       `=destroy`(atom)
   else: discard 
 
@@ -92,7 +100,21 @@ proc hash*(atom: MAtom): Hash {.inline.} =
   of Ident:
     h = h !& atom.ident.hash()
   of Integer:
-    h = h !& atom.integer
+    h = h !& atom.integer.hash()
+  of Object:
+    for k, v in atom.fields:
+      h = h !& k.hash()
+      h = h !& v.hash()
+
+    h = h !& atom.values.hash()
+  of Sequence:
+    h = h !& atom.sequence.hash()
+    h = h !& atom.lCap.hash()
+    h = h !& atom.lHomogenous.hash()
+  of UnsignedInt:
+    h = h !& atom.uinteger.hash()
+  of Boolean:
+    h = h !& atom.state.hash()
   else: discard
 
   !$h
@@ -116,7 +138,6 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
     result &= '[' # sequence guard open
 
     for i, item in atom.sequence:
-      echo i
       result &= item.crush(id & "_mseq_" & $i)
 
       if i + 1 < atom.sequence.len:
@@ -125,6 +146,34 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
     result &= ']' # sequence guard close
   of Null, Object:
     return "NULL"
+
+proc setCap*(atom: var MAtom, cap: int) {.inline.} =
+  case atom.kind
+  of Sequence:
+    atom.lCap = some(cap)
+  of String:
+    atom.sCap = some(cap)
+  else:
+    raise newException(ValueError, "Attempt to set cap on a non-container atom: " & $atom.kind)
+
+proc getCap*(atom: var MAtom): int {.inline.} =
+  case atom.kind
+  of Sequence:
+    if *atom.lCap:
+      return &atom.lCap
+  of String:
+    if *atom.sCap:
+      return &atom.sCap
+  else:
+    raise newException(ValueError, "Attempt to get the cap of a non-container atom: " & $atom.kind)
+
+  high(int)
+
+proc markHomogenous*(atom: var MAtom) {.inline.} =
+  if atom.kind == Sequence:
+    atom.lHomogenous = true
+  else:
+    raise newException(ValueError, "Attempt to mark a " & $atom.kind & " as a homogenous data type. Only List(s) can be marked as such.")
 
 proc len*(s: MAtomSeq): int {.borrow.}
 proc `[]`*(s: MAtomSeq, i: Natural): MAtom {.inline.} =

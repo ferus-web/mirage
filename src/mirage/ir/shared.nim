@@ -6,11 +6,15 @@ import std/hashes
 import ../runtime/shared, ../atom
 
 type
-  IROperation* = ref object
+  Register* = enum
+    ReturnValue = 0
+    CallArgument = 1
+
+  IROperation* = object
     opCode*: Ops
     arguments*: seq[MAtom]
 
-  CodeModule* = ref object
+  CodeModule* = object
     name*: string
     operations*: seq[IROperation]
 

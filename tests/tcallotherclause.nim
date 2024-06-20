@@ -1,24 +1,38 @@
-import mirage/[utils, atom, ir/generator]
+import mirage/[atom, ir/generator]
 import mirage/runtime/prelude
-import pretty
 
 # create IR generator
 let gen = newIRGenerator("clause_callers")
 
-# function "other_clause"
-gen.newModule("other_clause")
-gen.loadStr(
-  0, "This was called from another function!"
-)
-gen.call("print", @[integer 0])
-gen.returnFn(null())
+# function "add_until_beeg"
+gen.newModule("add_until_beeg")
+gen.readRegister(1, 1, CallArgument) # `value`
+gen.readRegister(2, 2, CallArgument) # `beeg`
+
+gen.equate(1, 2)
+gen.jump(6)
+gen.jump(11)
+
+gen.loadInt(3, 1) # literal 1
+gen.addInt(1, 3)
+gen.resetArgs()
+gen.passArgument(1)
+gen.call("add_until_beeg")
+
+gen.returnFn(1)
 
 # function "main"
 gen.newModule("main")
-gen.call("other_clause", @[])
-gen.loadStr(1, "We're back in the main function!")
-gen.call("print", @[integer 1])
-gen.returnFn(null())
+gen.loadInt(1, 1) # `value`
+gen.loadInt(2, 32) # `beeg`
+
+gen.passArgument(1)
+gen.passArgument(2)
+
+gen.call("add_until_beeg")
+
+gen.readRegister(3, ReturnValue)
+gen.call("print", @[integer 3])
 
 # emit IR
 let ir = gen.emit()

@@ -5,7 +5,6 @@
 
 import ./shared, ../runtime/shared, ../atom
 import ../version
-import pretty
 
 proc emitOperation*(
   gen: IRGenerator,

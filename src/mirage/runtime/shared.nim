@@ -13,7 +13,7 @@ type
     tkIdent
     tkEnd
 
-  Token* = ref object
+  Token* = object
     case kind*: TokenKind
     of tkComment:
       comment*: string
@@ -60,6 +60,8 @@ type
     ## `idx`: Integer - operation ID
     Jump = 0x3
     
+    ## Generic functions for dynamic values where the emitter did not know what types are going to be operated upon.
+    ## These are slower than their "targetted-type" counterparts as they need to check for exceptions.
     Add = 0x4
     Mult = 0x5
     Div = 0x6
@@ -169,17 +171,30 @@ type
     ## Decrement an integer/unsigned integer atom by one. This just exists to avoid creating ints again and again to use for `LoadInt`.
     Decrement = 0x20
 
-    ## Multiply a vector with 4 integers against another vector with 4 integers.
-    Mult4xBatch = 0x21
-
     ## Multiply a vector with 3 integers against another vector with 3 integers.
-    Mult3xBatch = 0x22
-
-    ## Multiply a vector with 8 integers against another vector with 8 integers.
-    Mult8xBatch = 0x23
+    Mult3xBatch = 0x21
 
     ## Multiply a vector with 2 integers against another vector with 2 integers.
-    Mult2xBatch = 0x24
+    Mult2xBatch = 0x22
+
+    ## Mark a list as homogenous.
+    MarkHomogenous = 0x23
+
+    ## Load a null atom onto the stack position provided.
+    LoadNull = 0x24
+
+    ## Mark a local atom position on the stack as a global, allowing all clauses to access it.
+    MarkGlobal = 0x25
+
+    ## Read a builtin interpreter register and store its value (if there is any) to a specified location. If the register is empty, overwrite the
+    ## location to a NULL atom
+    ReadRegister = 0x26
+
+    ## Add an atom to the call arguments register.
+    PassArgument = 0x27
+
+    ## Reset the call arguments register.
+    ResetArgs = 0x28
 
 const
   OpCodeToTable* = {
@@ -187,10 +202,6 @@ const
     "LOADI": LoadInt,
     "LOADS": LoadStr,
     "LOADL": LoadList,
-    "ADD": ADD,
-    "SUB": SUB,
-    "MULT": Mult,
-    "DIV": Div,
     "JUMP": Jump,
     "RETURN": Return,
     "EQU": Equate,
@@ -217,9 +228,13 @@ const
     "INC": Increment,
     "DEC": Decrement,
     "THREEMULT": Mult3xBatch,
-    "FOURMULT": Mult4xBatch,
-    "EIGHTMULT": Mult8xBatch,
-    "TWOMULT": Mult2xBatch
+    "TWOMULT": Mult2xBatch,
+    "MARKHOMO": MarkHomogenous,
+    "LOADN": LoadNull,
+    "GLOB": MarkGlobal,
+    "RREG": ReadRegister,
+    "PARG": PassArgument,
+    "RARG": ResetArgs
   }.toTable
 
   OpCodeToString* = block:

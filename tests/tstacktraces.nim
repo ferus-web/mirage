@@ -19,7 +19,7 @@ END main
 i.registerBuiltin(
   "throw_a_dumb_error",
   proc(op: Operation) =
-    i.throw(wrongType(1, "otherclause", String, Integer))
+    i.throw(wrongType(String, Integer))
 )
 
 analyze i

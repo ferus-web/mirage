@@ -2,10 +2,8 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[options, strutils]
+import std/[options]
 import ../[shared, tokenizer], operation
-import ../../utils
-import pretty
 
 proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
   discard dtok.consumeWhitespace()
