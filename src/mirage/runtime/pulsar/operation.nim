@@ -5,7 +5,6 @@
 import std/[options, tables]
 import ../shared
 import ../../[atom, utils]
-import pretty
 
 const MirageOperationJitThreshold* {.intdefine.} = 8 # FIXME: set this to something higher
 
