@@ -2,12 +2,12 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[options]
-import ../[shared, tokenizer], operation
+import std/[options, tables]
+import ../[shared, tokenizer]
+import ./operation
+import pretty
 
 proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
-  discard dtok.consumeWhitespace()
-
   var op = Operation()
   let opIdx = dtok.nextExcludingWhitespace()
 
@@ -22,11 +22,11 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
   while not dtok.isEof():
     let arg = dtok.next()
 
-    if arg.kind in [tkQuotedString, tkInteger, tkIdent]:
+    if arg.kind == tkQuotedString or arg.kind == tkInteger or arg.kind == tkIdent:
       op.rawArgs.add(arg)
       continue
 
     break
   
-  discard dtok.consumeWhitespace()
+  #print op
   some op
