@@ -3,42 +3,51 @@
 ##
 ## Copyright (C) Trayambak Rai 2024
 
-import std/[options, strutils, tables, math]
+import std/[options, strutils, tables, hashes, math]
 import ./shared
+import kashae
 
 type
   TokenizerDefect* = object of Defect
-  Tokenizer* = ref object
+  Tokenizer* = object
     input*: string
     pos*: uint
 
-proc newTokenizer*(input: string): Tokenizer {.inline.} =
+proc hash*(tokenizer: Tokenizer): Hash =
+  hash(
+    (tokenizer.input,
+    tokenizer.pos)
+  )
+
+{.push checks: off, inline.}
+proc newTokenizer*(input: string): Tokenizer =
   Tokenizer(
     input: input,
     pos: 0'u
   )
 
-proc forwards*(tokenizer: Tokenizer, n: uint) {.inline, gcsafe.} =
+proc forwards*(tokenizer: var Tokenizer, n: uint) =
   ## Go forwards by `n` characters
   tokenizer.pos += n
 
-proc charAt*(tokenizer: Tokenizer, offset: uint = 0'u): char {.inline, noSideEffect.} =
+proc charAt*(tokenizer: Tokenizer, offset: uint = 0'u): char =
   ## Get the character at our current position + `offset`.
   tokenizer.input[tokenizer.pos + offset]
 
-proc nextChar*(tokenizer: Tokenizer): char {.inline, noSideEffect.} =
+proc nextChar*(tokenizer: Tokenizer): char {.inline.} =
   ## Get the next character
   result = charAt(tokenizer, 0)
 
-proc hasAtLeast*(tokenizer: Tokenizer, n: uint): bool {.inline, gcsafe, noSideEffect.} =
+proc hasAtLeast*(tokenizer: Tokenizer, n: uint): bool =
   ## Are there `n` number of characters ahead of us?
   tokenizer.pos + n < tokenizer.input.len.uint
 
-proc isEof*(tokenizer: Tokenizer): bool {.inline, gcsafe, noSideEffect.} =
+proc isEof*(tokenizer: Tokenizer): bool =
   ## Have we hit the end of the input?
   not tokenizer.hasAtLeast(0)
+{.pop.}
 
-proc consumeComment*(tokenizer: Tokenizer): Token =
+proc consumeComment*(tokenizer: var Tokenizer): Token =
   var comment = Token(kind: tkComment, comment: "")
 
   while not tokenizer.isEof:
@@ -53,7 +62,7 @@ proc consumeComment*(tokenizer: Tokenizer): Token =
 
   comment
 
-proc consumeWhitespace*(tokenizer: Tokenizer): Token =
+proc consumeWhitespace*(tokenizer: var Tokenizer): Token =
   var ws = Token(kind: tkWhitespace)
 
   while not tokenizer.isEof():
@@ -68,7 +77,7 @@ proc consumeWhitespace*(tokenizer: Tokenizer): Token =
 
   ws
 
-proc consumeNewline*(tokenizer: Tokenizer): Token {.inline.} =
+proc consumeNewline*(tokenizer: var Tokenizer): Token {.inline.} =
   let c = tokenizer.nextChar()
   assert c == '\r' or c == '\n' or c == '\x0C'
 
@@ -76,7 +85,7 @@ proc consumeNewline*(tokenizer: Tokenizer): Token {.inline.} =
   if c == '\r' and tokenizer.nextChar() == '\n':
     inc tokenizer.pos
 
-proc consumeQuotedString*(tokenizer: Tokenizer): Token =
+proc consumeQuotedString*(tokenizer: var Tokenizer): Token =
   let singleQuote = tokenizer.nextChar() == '\''
   tokenizer.forwards(1)
   var qstr = Token(kind: tkQuotedString)
@@ -106,13 +115,14 @@ proc consumeQuotedString*(tokenizer: Tokenizer): Token =
 
   qstr
 
-proc charToDecimalDigit*(c: char): Option[uint32] {.inline.} =
+{.push checks: off, inline.}
+proc charToDecimalDigit*(c: char): Option[uint32] =
   ## Convert characters to decimal digits
   if c >= '0' and c <= '9':
     return some((c.ord - '0'.ord).uint32)
 
-proc consumeNumeric*(tokenizer: Tokenizer): Token =
-  proc unpack[T](o: Option[T], v: var T): bool {.inline.} =
+proc consumeNumeric*(tokenizer: var Tokenizer): Token =
+  proc unpack[T](o: Option[T], v: var T): bool =
     if o.isSome:
       v = unsafeGet o
       true
@@ -216,8 +226,9 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
       dHasSign: hasSign,
       double: value
     )
+{.pop.}
 
-proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
+proc consumeCharacterBasedToken*(tokenizer: var Tokenizer): Token =
   var 
     ident = Token(kind: tkIdent)
     operation = Token(kind: tkOperation)
@@ -238,15 +249,17 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
     operation.op = content
     operation
   else:
-    if content.startsWith("CLAUSE"):
+    case content
+    of "CLAUSE":
       return Token(kind: tkClause, clause: tokenizer.consumeCharacterBasedToken().ident)
-    elif content.startsWith("END"):
+    of "END":
       return Token(kind: tkEnd, endClause: tokenizer.consumeCharacterBasedToken().ident)
+    else: discard
 
     ident.ident = content
     ident
 
-proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
+proc next*(tokenizer: var Tokenizer, includeWhitespace: bool = false): Token =
   if tokenizer.isEof:
     raise newException(
       TokenizerDefect,
@@ -281,7 +294,7 @@ proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
 
   Token(kind: tkWhitespace)
 
-proc nextExcludingWhitespace*(tokenizer: Tokenizer): Token {.inline.} =
+proc nextExcludingWhitespace*(tokenizer: var Tokenizer): Token {.inline.} =
   var next = next tokenizer
 
   while not tokenizer.isEof() and next.kind == tkWhitespace:
@@ -289,11 +302,11 @@ proc nextExcludingWhitespace*(tokenizer: Tokenizer): Token {.inline.} =
 
   next
 
-proc maybeNext*(tokenizer: Tokenizer): Option[Token] {.inline.} =
+proc maybeNext*(tokenizer: var Tokenizer): Option[Token] {.inline.} =
   if not tokenizer.isEof():
     return some tokenizer.next()
 
-proc maybeNextExcludingWhitespace*(tokenizer: Tokenizer): Option[Token] {.inline.} =
+proc maybeNextExcludingWhitespace*(tokenizer: var Tokenizer): Option[Token] {.inline.} =
   var next = next tokenizer
 
   while not tokenizer.isEof() and next.kind == tkWhitespace:
@@ -302,6 +315,6 @@ proc maybeNextExcludingWhitespace*(tokenizer: Tokenizer): Option[Token] {.inline
   if next.kind != tkWhitespace:
     return some next
 
-iterator flow*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token {.inline.} =
+iterator flow*(tokenizer: var Tokenizer, includeWhitespace: bool = false): Token {.inline.} =
   while not tokenizer.isEof():
     yield tokenizer.next(includeWhitespace)
