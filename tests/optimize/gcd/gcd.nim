@@ -21,4 +21,4 @@ END main
 """)
 
 analyze i
-run i
+run i # execution is really fast, analysis is slow.

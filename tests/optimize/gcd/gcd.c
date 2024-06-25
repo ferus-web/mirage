@@ -1,10 +1,7 @@
 #include <stdio.h>
 
-int main()
+int gcd(int a, int b)
 {
-	int a = 32;
-	int b = 48;
-
 	while (a != b)
 	{
 		if (a > b)
@@ -15,6 +12,9 @@ int main()
 			b = b - a;
 		}
 	}
+}
 
-	printf("%i\n", a);
+int main()
+{
+	printf("%i\n", gcd(32, 48));
 }
