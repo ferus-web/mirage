@@ -39,7 +39,7 @@ type
     of Boolean:
       state*: bool
     of Object:
-      fields*: TableRef[string, int]
+      fields*: Table[string, int]
       values*: seq[MAtom]
     of Null: discard
 
@@ -255,7 +255,7 @@ proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
 proc obj*: MAtom {.inline.} =
   MAtom(
     kind: Object,
-    fields: newTable[string, int](),
+    fields: initTable[string, int](),
     values: @[]
   )
 
