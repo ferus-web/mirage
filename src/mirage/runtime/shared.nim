@@ -1,6 +1,5 @@
 import std/tables
 import ../atom
-import sorta
 
 type
   TokenKind* = enum
