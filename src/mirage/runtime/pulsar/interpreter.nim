@@ -900,9 +900,14 @@ proc run*(interpreter: PulsarInterpreter) =
     let
       clause = &cls
       op = clause.find(interpreter.currIndex)
-    
+
     if not *op:
-      break
+      if clause.rollback.clause == int.low:
+        break
+
+      interpreter.currClause = clause.rollback.clause
+      interpreter.currIndex = clause.rollback.opIndex
+      continue
 
     var operation = &op
     resolve(clause, operation)

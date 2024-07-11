@@ -1,0 +1,20 @@
+CLAUSE A
+	1 LOADS 1 "Clause A got executed"
+	2 CALL print 1
+	3 CALL B
+	4 LOADS 1 "Clause B got called, we're back in A"
+	5 CALL print 1
+END A
+
+CLAUSE B
+	1 LOADS 1 "Clause B got executed"
+	2 CALL print 1
+	3 CALL C
+	4 LOADS 1 "Clause C got called, we're back in B"
+	5 CALL print 1
+END B
+
+CLAUSE C
+	1 LOADS 1 "Clause C got executed"
+	2 CALL print 1
+END C
