@@ -3,11 +3,12 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[tables, options]
+import std/[tables, options, hashes]
 import ../../[atom, utils]
 import ../[shared, tokenizer, exceptions]
 import ./[operation, bytecodeopsetconv]
-import pretty
+import ../compiler/prelude
+import pretty, crunchy, kashae
 
 when not defined(mirageNoSimd):
   import nimsimd/sse2
@@ -18,24 +19,13 @@ else:
   .}
 
 type
-  Clause* = object
-    name*: string
-    operations*: seq[Operation]
-
-    rollback*: ClauseRollback
-
-  InvalidRegisterRead* = object of Defect
-
-  ClauseRollback* = object
-    clause*: int = int.low
-    opIndex*: uint = 1
-
   Registers* = object
     retVal*: Option[MAtom]
     callArgs*: seq[MAtom]
 
   PulsarInterpreter* = ref object
     tokenizer: Tokenizer
+    compiler: Compiler
     currClause: int
     currIndex: uint = 1
     clauses: seq[Clause]
@@ -62,8 +52,12 @@ proc find*(clause: Clause, id: uint): Option[Operation] =
       return some op
 
 proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Option[Clause] =
-  let id = if *id: &id else: interpreter.currClause
-  if id <= interpreter.clauses.len-1 and id > -1:
+  let id = if *id: 
+    &id 
+  else: 
+    interpreter.currClause
+
+  if id <= interpreter.clauses.len - 1 and id > -1:
     some(interpreter.clauses[id])
   else:
     none(Clause)
@@ -102,7 +96,7 @@ proc analyze*(interpreter: PulsarInterpreter) =
       interpreter.tokenizer.pos = cTok.pos
       continue
     
-    let op = nextOperation interpreter.tokenizer
+    let op = nextOperation interpreter.tokenizer # `nextOperation` is unbearably slow (0.4-0.5x slowdown)
 
     if *clause and *op:
       interpreter.clauses[interpreter.currClause].operations.add(&op)
@@ -147,7 +141,7 @@ proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException, bubblin
   if *clause and not bubbling:
     exception.operation = interpreter.currIndex
     exception.clause = (&clause).name
-
+  
   interpreter.errors.add(exception)
 
   if *clause:
@@ -156,7 +150,7 @@ proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException, bubblin
       prevClause = interpreter.getClause(rollback.clause.int.some)
 
     var bubblingException = deepCopy(exception)
-    bubblingException.operation = rollback.opIndex
+    bubblingException.operation = rollback.opIndex.uint
 
     if *prevClause:
       bubblingException.clause = (&prevClause).name
@@ -177,151 +171,9 @@ proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException, bubblin
 
   interpreter.trace = newTrace
 
-proc resolve*(
-  interpreter: PulsarInterpreter, 
-  clause: Clause, op: var Operation
-) =
-  let mRawArgs = deepCopy(op.rawArgs)
-  op.arguments.reset()
-
-  case op.opCode
-  of LoadStr:
-    op.arguments &= 
-      op.consume(Integer, "LOADS expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(String, "LOADS expects a string at position 2")
-  of LoadInt, LoadUint:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of Equate:
-    for x, _ in op.rawArgs.deepCopy():
-      op.arguments &=
-        op.consume(Integer, "EQU expects an integer at position " & $x)
-  of GreaterThanInt, LesserThanInt:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of Call:
-    op.arguments &=
-      op.consume(String, "CALL expects an ident/string at position 1")
-    
-    for i, x in deepCopy(op.rawArgs):
-      op.arguments &=
-        op.consume(Integer, "CALL expects an integer at position " & $i)
-  of Jump:
-    op.arguments &=
-      op.consume(Integer, "JUMP expects exactly one integer as an argument")
-  of AddInt, AddStr, SubInt:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of CastStr, CastInt:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of LoadList:
-    op.arguments &=
-      op.consume(Integer, "LOADL expects an integer at position 1")
-  of AddList:
-    op.arguments &=
-      op.consume(Integer, "ADDL expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "ADDL expects an integer at position 2")
-  of LoadBool:
-    op.arguments &=
-      op.consume(Integer, "LOADB expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Boolean, "LOADB expects a boolean at position 2")
-  of Swap:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, "SWAP expects an integer at position " & $x)
-  of Add, Mult, Div, Sub:
-    for x in 1 .. 3:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of Return:
-    op.arguments &=
-      op.consume(Integer, "RETURN expects an integer at position 1")
-  of SetCapList:
-    op.arguments &=
-      op.consume(Integer, "SCAPL expects an integer at position 1")   
-
-    op.arguments &=
-      op.consume(Integer, "SCAPL expects an integer at position 2")
-  of JumpOnError:
-    op.arguments &=
-      op.consume(Integer, "JMPE expects an integer at position 1")
-  of PopList, PopListPrefix:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
-  of LoadObject:
-    op.arguments &=
-      op.consume(Integer, "LOADO expects an integer at position 1")
-  of CreateField:
-    for x in 1 .. 2:
-      op.arguments &=
-        op.consume(Integer, "CFIELD expects an integer at position " & $x)
-
-    op.arguments &=
-      op.consume(String, "CFIELD expects a string at position 3")
-  of FastWriteField:
-    for x in 1 .. 2:
-      op.arguments &= 
-        op.consume(Integer, "FWFIELD expects an integer at position " & $x)
-  of WriteField:
-    op.arguments &=
-      op.consume(Integer, "WFIELD expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(String, "WFIELD expects a string at position 2")
-  of Increment, Decrement:
-    op.arguments &=
-      op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position 1")
-  of CrashInterpreter:
-    discard
-  of Mult3xBatch:
-    for i in 1 .. 7:
-      op.arguments &=
-        op.consume(Integer, "THREEMULT expects an integer at position " & $i)
-  of Mult2xBatch:
-    for i in 1 .. 5:
-      op.arguments &=
-        op.consume(Integer, "TWOMULT expects an integer at position " & $i)
-  of MarkHomogenous:
-    op.arguments &=
-      op.consume(Integer, "MARKHOMO expects an integer at position 1")
-  of LoadNull:
-    op.arguments &=
-      op.consume(Integer, "LOADN expects an integer at position 1")
-  of MarkGlobal:
-    op.arguments &=
-      op.consume(Integer, "GLOB expects an integer at position 1")
-  of ReadRegister:
-    op.arguments &=
-      op.consume(Integer, "RREG expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "RREG expects an integer at position 2")
-    
-    try:
-      op.arguments &=
-        op.consume(Integer, "RREG expects an integer at position 3 when accessing a sequence based register")
-    except ValueError as exc:
-      if op.arguments[1].getInt() in SequenceBasedRegisters:
-        raise exc
-  of PassArgument:
-    op.arguments &=
-      op.consume(Integer, "PARG expects an integer at position 1")
-  of ResetArgs:
-    discard
-
-  op.rawArgs = mRawArgs
+proc compileClause*(interpreter: PulsarInterpreter) =
+  let clause = interpreter.clauses[interpreter.currClause]
+  interpreter.clauses[interpreter.currClause].compiled = some(interpreter.compiler.compile(interpreter.stack, clause))
 
 proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
   var 
@@ -344,7 +196,7 @@ proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
     assert *clause, "No clause found with ID: " & $currTrace.clause
 
     var operation = &(&clause).find(currTrace.index)
-    interpreter.resolve(&clause, operation)
+    resolve(&clause, operation)
 
     let line = # FIXME: weird stuff
       if currTrace.exception.operation < 2:
@@ -363,6 +215,7 @@ proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
 
   some(msg)
 
+{.push checks: off.}
 proc appendAtom*(interpreter: PulsarInterpreter, src, dest: uint) =
   let 
     a = interpreter.get(src)
@@ -421,7 +274,7 @@ proc zeroOut*(
   ## WARNING: **The index is then left empty and accesses to it will raise KeyErrors, so make sure to add something in its place unless it is truly no longer needed!**
   interpreter.stack.del(index)
 
-proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
+proc swap*(interpreter: PulsarInterpreter, a, b: int) =
   var
     atomA = interpreter.get(a.uint)
     atomB = interpreter.get(b.uint)
@@ -435,6 +288,7 @@ proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
   swap(atomA, atomB)
   interpreter.addAtom(&atomA, a.uint)
   interpreter.addAtom(&atomB, b.uint)
+{.pop.}
 
 proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   let oclause = interpreter.getClause()
@@ -447,7 +301,8 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
 
   when not defined(mirageNoJit):
     inc op.called
-
+  
+  {.computedGoto.}
   case op.opCode
   of LoadStr:
     interpreter.addAtom(
@@ -508,7 +363,7 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
 
     # revert back to where we left off in the previous clause (or exit if this was the final clause - that's handled by the logic in `run`)
     interpreter.currClause = (&clause).rollback.clause
-    interpreter.currIndex = (&clause).rollback.opIndex
+    interpreter.currIndex = (&clause).rollback.opIndex.uint
   of Call:
     if interpreter.hasBuiltin(&op.arguments[0].getStr()):
       interpreter.callBuiltin(&op.arguments[0].getStr(), op)
@@ -1032,7 +887,7 @@ proc setEntryPoint*(interpreter: PulsarInterpreter, name: string) {.inline.} =
 
   raise newException(
     ValueError,
-    "setEntryPoint(): cannot find clause \"" & name & "\""
+    "cannot find clause \"" & name & "\"; have you called `analyze` yet?"
   )
 
 proc run*(interpreter: PulsarInterpreter) =
@@ -1054,9 +909,10 @@ proc run*(interpreter: PulsarInterpreter) =
       interpreter.currIndex = clause.rollback.opIndex
       continue
 
-    var operation = deepCopy(&op)
-    
-    interpreter.resolve(clause, operation)
+    var operation = &op
+    resolve(clause, operation)
+
+    interpreter.clauses[interpreter.currClause].operations[interpreter.currIndex - 1] = operation
     interpreter.execute(operation)
 
 proc newPulsarInterpreter*(source: string): PulsarInterpreter =
@@ -1065,7 +921,8 @@ proc newPulsarInterpreter*(source: string): PulsarInterpreter =
     clauses: @[],
     builtins: initTable[string, proc(op: Operation)](),
     locals: initTable[uint, string](),
-    stack: initTable[uint, MAtom]()
+    stack: initTable[uint, MAtom](),
+    compiler: newCompiler()
   )
   interp.registerBuiltin(
     "print", proc(op: Operation) =
@@ -1077,6 +934,7 @@ proc newPulsarInterpreter*(source: string): PulsarInterpreter =
         if *val:
           echo (&val).crush("", quote = false)
   )
+  #interp.compiler.setFilename(sha256(source).toHex())
 
   interp
 

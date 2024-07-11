@@ -1,0 +1,19 @@
+total executions of each stack trace:
+Entry: 1/27 Calls: 5/34 = 14.71% [sum: 5; 5/34 = 14.71%]
+  /nix/store/j0rq24hr1bs02smx98zj7r1a36sp9agg-nim-unwrapped-2.0.4/nim/lib/system.nim: getClause 9/34 = 26.47%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: run 26/34 = 76.47%
+  /home/tray/Documents/Projects/mirage/tests/optimize/gcd/gcd.nim: gcd 33/34 = 97.06%
+Entry: 2/27 Calls: 2/34 = 5.88% [sum: 7; 7/34 = 20.59%]
+  /nix/store/j0rq24hr1bs02smx98zj7r1a36sp9agg-nim-unwrapped-2.0.4/nim/lib/system.nim: & 5/34 = 14.71%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: run 26/34 = 76.47%
+  /home/tray/Documents/Projects/mirage/tests/optimize/gcd/gcd.nim: gcd 33/34 = 97.06%
+Entry: 3/27 Calls: 2/34 = 5.88% [sum: 9; 9/34 = 26.47%]
+  /nix/store/j0rq24hr1bs02smx98zj7r1a36sp9agg-nim-unwrapped-2.0.4/nim/lib/system.nim: getClause 9/34 = 26.47%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: execute 18/34 = 52.94%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: run 26/34 = 76.47%
+  /home/tray/Documents/Projects/mirage/tests/optimize/gcd/gcd.nim: gcd 33/34 = 97.06%
+Entry: 4/27 Calls: 2/34 = 5.88% [sum: 11; 11/34 = 32.35%]
+  /nix/store/j0rq24hr1bs02smx98zj7r1a36sp9agg-nim-unwrapped-2.0.4/nim/lib/system.nim: & 5/34 = 14.71%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: execute 18/34 = 52.94%
+  /home/tray/Documents/Projects/mirage/src/mirage/runtime/pulsar/interpreter.nim: run 26/34 = 76.47%
+  /home/tray/Documents/Projects/mirage/tests/optimize/gcd/gcd.nim: gcd 33/34 = 97.06%
