@@ -291,14 +291,6 @@ proc swap*(interpreter: PulsarInterpreter, a, b: int) =
 {.pop.}
 
 proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
-  let oclause = interpreter.getClause()
-
-  if *oclause:
-    var clause = &oclause
-
-    clause.rollback.clause = interpreter.currClause.int
-    clause.rollback.opIndex = op.index
-
   when not defined(mirageNoJit):
     inc op.called
   
@@ -367,29 +359,30 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   of Call:
     if interpreter.hasBuiltin(&op.arguments[0].getStr()):
       interpreter.callBuiltin(&op.arguments[0].getStr(), op)
+      inc interpreter.currIndex
     else:
       let
         name = &op.arguments[0].getStr()
-        resolver = (proc: tuple[index: int, clause: Option[Clause]] {.gcsafe.} =
+        (index, clause) = (proc: tuple[index: int, clause: Option[Clause]] {.gcsafe.} =
           for i, cls in interpreter.clauses:
             if cls.name == name:
               return (index: i, clause: some cls)
-        )
-
-        (index, clause) = resolver()
+        )()
       
       if *clause:
-        let oldClause = &interpreter.getClause()
-        var newClause = &clause
-
-        newClause.rollback.clause = interpreter.currClause
+        var newClause = &clause # get the new clause
+        print newClause
+        
+        # setup rollback points
+        newClause.rollback.clause = interpreter.currClause # points to current clause
         newClause.rollback.opIndex = interpreter.currIndex + 1 # otherwise we'll get stuck in an infinite recursion
-
-        interpreter.currClause = index
-        interpreter.clauses[interpreter.currClause] = newClause
-        interpreter.currIndex = 0
       
-    inc interpreter.currIndex
+        # set clause pointer to new index
+        interpreter.currClause = index
+        interpreter.clauses[index] = newClause # store clause w/ rollback data to clauses
+        interpreter.currIndex = 1 # set execution op index to 0 to start from the beginning
+      else:
+        raise newException(ValueError, "Reference to unknown clause: " & name)
   of CastStr:
     let atom = interpreter.get((
       &op.arguments[0].getInt()
@@ -904,7 +897,7 @@ proc run*(interpreter: PulsarInterpreter) =
     if not *op:
       if clause.rollback.clause == int.low:
         break
-
+       
       interpreter.currClause = clause.rollback.clause
       interpreter.currIndex = clause.rollback.opIndex
       continue
