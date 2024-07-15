@@ -1,0 +1,20 @@
+CLAUSE consoledotlog
+	1 CALL print 1
+END consoledotlog
+
+# Clause/CodeModule "outer"
+# Operations: 1
+CLAUSE outer
+	1 CALL main 
+END outer
+
+# Clause/CodeModule "main"
+# Operations: 6
+CLAUSE main
+	1 LOADS 1 "this is the value of x" 
+	2 LOADS 2 "this is truly a moment"
+	3 PARG 1
+	4 CALL consoledotlog 
+	5 PARG 2 
+	6 CALL consoledotlog 
+END main
