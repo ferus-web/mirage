@@ -196,6 +196,12 @@ type
     ## Reset the call arguments register.
     ResetArgs = 0x28
 
+    ## Copy an atom to another position.
+    CopyAtom = 0x29
+
+    ## Move an atom to another position, replacing the source with a NULL atom.
+    MoveAtom = 0x2a
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -234,7 +240,9 @@ const
     "GLOB": MarkGlobal,
     "RREG": ReadRegister,
     "PARG": PassArgument,
-    "RARG": ResetArgs
+    "RARG": ResetArgs,
+    "COPY": CopyAtom,
+    "MOVE": MoveAtom
   }.toTable
 
   OpCodeToString* = static:

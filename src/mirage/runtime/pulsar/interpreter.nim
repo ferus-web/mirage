@@ -171,9 +171,169 @@ proc throw*(interpreter: PulsarInterpreter, exception: RuntimeException, bubblin
 
   interpreter.trace = newTrace
 
+<<<<<<< HEAD
 proc compileClause*(interpreter: PulsarInterpreter) =
   let clause = interpreter.clauses[interpreter.currClause]
   interpreter.clauses[interpreter.currClause].compiled = some(interpreter.compiler.compile(interpreter.stack, clause))
+=======
+proc resolve*(
+  interpreter: PulsarInterpreter, 
+  clause: Clause, op: var Operation
+) =
+  let mRawArgs = deepCopy(op.rawArgs)
+  op.arguments.reset()
+
+  case op.opCode
+  of LoadStr:
+    op.arguments &= 
+      op.consume(Integer, "LOADS expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(String, "LOADS expects a string at position 2")
+  of LoadInt, LoadUint:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of Equate:
+    for x, _ in op.rawArgs.deepCopy():
+      op.arguments &=
+        op.consume(Integer, "EQU expects an integer at position " & $x)
+  of GreaterThanInt, LesserThanInt:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of Call:
+    op.arguments &=
+      op.consume(String, "CALL expects an ident/string at position 1")
+    
+    for i, x in deepCopy(op.rawArgs):
+      op.arguments &=
+        op.consume(Integer, "CALL expects an integer at position " & $i)
+  of Jump:
+    op.arguments &=
+      op.consume(Integer, "JUMP expects exactly one integer as an argument")
+  of AddInt, AddStr, SubInt:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of CastStr, CastInt:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of LoadList:
+    op.arguments &=
+      op.consume(Integer, "LOADL expects an integer at position 1")
+  of AddList:
+    op.arguments &=
+      op.consume(Integer, "ADDL expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "ADDL expects an integer at position 2")
+  of LoadBool:
+    op.arguments &=
+      op.consume(Integer, "LOADB expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Boolean, "LOADB expects a boolean at position 2")
+  of Swap:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, "SWAP expects an integer at position " & $x)
+  of Add, Mult, Div, Sub:
+    for x in 1 .. 3:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of Return:
+    op.arguments &=
+      op.consume(Integer, "RETURN expects an integer at position 1")
+  of SetCapList:
+    op.arguments &=
+      op.consume(Integer, "SCAPL expects an integer at position 1")   
+
+    op.arguments &=
+      op.consume(Integer, "SCAPL expects an integer at position 2")
+  of JumpOnError:
+    op.arguments &=
+      op.consume(Integer, "JMPE expects an integer at position 1")
+  of PopList, PopListPrefix:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position " & $x)
+  of LoadObject:
+    op.arguments &=
+      op.consume(Integer, "LOADO expects an integer at position 1")
+  of CreateField:
+    for x in 1 .. 2:
+      op.arguments &=
+        op.consume(Integer, "CFIELD expects an integer at position " & $x)
+
+    op.arguments &=
+      op.consume(String, "CFIELD expects a string at position 3")
+  of FastWriteField:
+    for x in 1 .. 2:
+      op.arguments &= 
+        op.consume(Integer, "FWFIELD expects an integer at position " & $x)
+  of WriteField:
+    op.arguments &=
+      op.consume(Integer, "WFIELD expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(String, "WFIELD expects a string at position 2")
+  of Increment, Decrement:
+    op.arguments &=
+      op.consume(Integer, OpCodeToString[op.opCode] & " expects an integer at position 1")
+  of CrashInterpreter:
+    discard
+  of Mult3xBatch:
+    for i in 1 .. 7:
+      op.arguments &=
+        op.consume(Integer, "THREEMULT expects an integer at position " & $i)
+  of Mult2xBatch:
+    for i in 1 .. 5:
+      op.arguments &=
+        op.consume(Integer, "TWOMULT expects an integer at position " & $i)
+  of MarkHomogenous:
+    op.arguments &=
+      op.consume(Integer, "MARKHOMO expects an integer at position 1")
+  of LoadNull:
+    op.arguments &=
+      op.consume(Integer, "LOADN expects an integer at position 1")
+  of MarkGlobal:
+    op.arguments &=
+      op.consume(Integer, "GLOB expects an integer at position 1")
+  of ReadRegister:
+    op.arguments &=
+      op.consume(Integer, "RREG expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "RREG expects an integer at position 2")
+    
+    try:
+      op.arguments &=
+        op.consume(Integer, "RREG expects an integer at position 3 when accessing a sequence based register")
+    except ValueError as exc:
+      if op.arguments[1].getInt() in SequenceBasedRegisters:
+        raise exc
+  of PassArgument:
+    op.arguments &=
+      op.consume(Integer, "PARG expects an integer at position 1")
+  of ResetArgs:
+    discard
+  of CopyAtom:
+    op.arguments &=
+      op.consume(Integer, "COPY expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "COPY expects an integer at position 2")
+  of MoveAtom:
+    op.arguments &=
+      op.consume(Integer, "MOVE expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "MOVE expects an integer at position 2")
+
+  op.rawArgs = mRawArgs
+>>>>>>> master
 
 proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
   var 
@@ -864,6 +1024,22 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     inc interpreter.currIndex
   of ResetArgs:
     interpreter.registers.callArgs.reset()
+    inc interpreter.currIndex
+  of CopyAtom:
+    let
+      src = (&op.arguments[0].getInt()).uint
+      dest = (&op.arguments[1].getInt()).uint
+    
+    interpreter.stack[dest] = &interpreter.get(src)
+    inc interpreter.currIndex
+  of MoveAtom:
+    let
+      src = (&op.arguments[0].getInt()).uint
+      dest = (&op.arguments[1].getInt()).uint
+
+    interpreter.stack[dest] = &interpreter.get(src)
+    `=destroy`(interpreter.stack[src])
+    interpreter.stack[src] = null()
     inc interpreter.currIndex
   else:
     when defined(release):
