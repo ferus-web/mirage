@@ -320,6 +320,18 @@ proc resolve*(
       op.consume(Integer, "PARG expects an integer at position 1")
   of ResetArgs:
     discard
+  of CopyAtom:
+    op.arguments &=
+      op.consume(Integer, "COPY expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "COPY expects an integer at position 2")
+  of MoveAtom:
+    op.arguments &=
+      op.consume(Integer, "MOVE expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Integer, "MOVE expects an integer at position 2")
 
   op.rawArgs = mRawArgs
 
@@ -1009,6 +1021,22 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     inc interpreter.currIndex
   of ResetArgs:
     interpreter.registers.callArgs.reset()
+    inc interpreter.currIndex
+  of CopyAtom:
+    let
+      src = (&op.arguments[0].getInt()).uint
+      dest = (&op.arguments[1].getInt()).uint
+    
+    interpreter.stack[dest] = &interpreter.get(src)
+    inc interpreter.currIndex
+  of MoveAtom:
+    let
+      src = (&op.arguments[0].getInt()).uint
+      dest = (&op.arguments[1].getInt()).uint
+
+    interpreter.stack[dest] = &interpreter.get(src)
+    `=destroy`(interpreter.stack[src])
+    interpreter.stack[src] = null()
     inc interpreter.currIndex
   else:
     when defined(release):
