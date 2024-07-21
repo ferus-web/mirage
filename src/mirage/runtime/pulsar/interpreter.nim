@@ -534,7 +534,6 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
       
       if *clause:
         var newClause = &clause # get the new clause
-        print newClause
         
         # setup rollback points
         newClause.rollback.clause = interpreter.currClause # points to current clause
