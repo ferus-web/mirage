@@ -22,7 +22,7 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
   while not dtok.isEof():
     let arg = dtok.next()
 
-    if arg.kind in [tkQuotedString, tkInteger, tkIdent]:
+    if arg.kind in [tkQuotedString, tkInteger, tkDouble, tkIdent]:
       op.rawArgs.add(arg)
       continue
 

@@ -332,6 +332,12 @@ proc resolve*(
 
     op.arguments &=
       op.consume(Integer, "MOVE expects an integer at position 2")
+  of LoadFloat:
+    op.arguments &=
+      op.consume(Integer, "LOADF expects an integer at position 1")
+
+    op.arguments &=
+      op.consume(Float, "LOADF expects an integer at position 2")
 
   op.rawArgs = mRawArgs
 
@@ -1037,6 +1043,13 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     interpreter.stack[dest] = &interpreter.get(src)
     `=destroy`(interpreter.stack[src])
     interpreter.stack[src] = null()
+    inc interpreter.currIndex
+  of LoadFloat:
+    let
+      pos = (&op.arguments[0].getInt()).uint
+      value = op.arguments[1]
+    
+    interpreter.addAtom(value, pos)
     inc interpreter.currIndex
   else:
     when defined(release):

@@ -202,6 +202,9 @@ type
     ## Move an atom to another position, replacing the source with a NULL atom.
     MoveAtom = 0x2a
 
+    ## Load a float onto a position
+    LoadFloat = 0x2b
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -242,27 +245,29 @@ const
     "PARG": PassArgument,
     "RARG": ResetArgs,
     "COPY": CopyAtom,
-    "MOVE": MoveAtom
+    "MOVE": MoveAtom,
+    "LOADF": LoadFloat
   }.toTable
 
-  OpCodeToString* = block:
+  OpCodeToString* = static:
     var vals = initTable[Ops, string]()
     for str, operation in OpCodeToTable:
       vals[operation] = str
 
     vals
 
-proc toOp*(op: string): Ops {.inline, raises: [ValueError].} =
-  if op in OpCodeToTable:
-    return OpCodeToTable[op]
+{.push checks: off, inline.}
+proc toOp*(op: string): Ops {.raises: [ValueError].} =
+  when not defined(release):
+    if op in OpCodeToTable:
+      return OpCodeToTable[op]
+    else:
+      raise newException(
+        ValueError,
+        "Invalid operation: " & op
+      )
   else:
-    raise newException(
-      ValueError,
-      "Invalid operation: " & op
-    )
+    OpCodeToTable[op]
 
-proc opToString*(op: Ops): string {.inline, raises: [].} =
-  try:
-    return OpCodeToString[op]
-  except KeyError:
-    assert false, "unreachable"
+proc opToString*(op: Ops): string =
+  OpCodeToString[op]

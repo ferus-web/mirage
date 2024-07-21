@@ -5,6 +5,7 @@
 
 import std/[options, strutils, tables, math]
 import ./shared
+import pretty
 
 type
   TokenizerDefect* = object of Defect
@@ -128,7 +129,7 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
       (true, 1f)
     else:
       (false, 1f)
-
+  
   if hasSign:
     tokenizer.forwards(1)
 
@@ -136,11 +137,9 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
     integralPart: float64
     digit: uint32
 
-  while unpack(charToDecimalDigit(tokenizer.nextChar()), digit):
+  while not tokenizer.isEof() and unpack(charToDecimalDigit(tokenizer.nextChar()), digit):
     integralPart = integralPart * 10'f64 + digit.float64
     tokenizer.forwards(1)
-    if tokenizer.isEof():
-      break
 
   var
     isInteger = true
@@ -161,7 +160,7 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
         break
 
   var value = sign * (integralPart + fractionalPart)
-  if tokenizer.hasAtleast(1) and tokenizer.nextChar() in ['e', 'E']:
+  #[if tokenizer.hasAtleast(1) and tokenizer.nextChar() in ['e', 'E']:
     if tokenizer.charAt(1) in {'0' .. '9'} or
         tokenizer.hasAtleast(2) and tokenizer.charAt(1) in ['+', '-'] and
         tokenizer.charAt(2) in {'0' .. '9'}:
@@ -188,7 +187,7 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
         if tokenizer.isEof():
           break
 
-      value *= pow(10'f64, sign * exponent)
+      value *= pow(10'f64, sign * exponent)]#
 
   let intValue: Option[int32] =
     case isInteger

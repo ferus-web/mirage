@@ -51,6 +51,7 @@ proc consume*(
     rawType = case raw.kind
     of tkQuotedString: String
     of tkInteger: Integer
+    of tkDouble: Float
     else: Null
 
   if not *position and operation.rawArgs.len > 1:
@@ -73,4 +74,6 @@ proc consume*(
     return str raw.ident
   of tkInteger:
     return integer raw.integer
+  of tkDouble:
+    return floating raw.double.float64
   else: discard
