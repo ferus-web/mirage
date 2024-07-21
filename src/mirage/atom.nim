@@ -17,6 +17,7 @@ type
     UnsignedInt = 5
     Boolean = 6
     Object = 7
+    Float = 8
 
   AtomOverflowError* = object of CatchableError
   SequenceError* = object of CatchableError
@@ -39,9 +40,11 @@ type
     of Boolean:
       state*: bool
     of Object:
-      fields*: TableRef[string, int]
+      fields*: Table[string, int]
       values*: seq[MAtom]
     of Null: discard
+    of Float:
+      floatVal*: float64
 
   MAtomSeq* = distinct seq[MAtom]
 
@@ -115,6 +118,8 @@ proc hash*(atom: MAtom): Hash {.inline.} =
     h = h !& atom.uinteger.hash()
   of Boolean:
     h = h !& atom.state.hash()
+  of Float:
+    h = h !& atom.floatVal.hash()
   else: discard
 
   !$h
@@ -144,8 +149,12 @@ proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
         result &= ", "
 
     result &= ']' # sequence guard close
-  of Null, Object:
+  of Float:
+    result &= $atom.floatVal
+  of Null:
     return "NULL"
+  of Object:
+    return "Object"
 
 proc setCap*(atom: var MAtom, cap: int) {.inline.} =
   case atom.kind
@@ -202,6 +211,10 @@ proc getUint*(atom: MAtom): Option[uint] {.inline.} =
   if atom.kind == UnsignedInt:
     return some atom.uinteger
 
+proc getFloat*(atom: MAtom): Option[float64] {.inline.} =
+  if atom.kind == Float:
+    return some atom.floatVal
+
 proc getSequence*(atom: MAtom): Option[seq[MAtom]] {.inline.} =
   if atom.kind == Sequence:
     return some(atom.sequence)
@@ -230,6 +243,12 @@ proc boolean*(b: bool): MAtom {.inline, gcsafe, noSideEffect.} =
     state: b
   )
 
+proc floating*(value: float64): MAtom {.inline, gcsafe, noSideEffect.} =
+  MAtom(
+    kind: Float,
+    floatVal: value
+  )
+
 proc boolean*(s: string): Option[MAtom] {.inline, gcsafe, noSideEffect.} =
   try:
     return some(
@@ -255,7 +274,7 @@ proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
 proc obj*: MAtom {.inline.} =
   MAtom(
     kind: Object,
-    fields: newTable[string, int](),
+    fields: initTable[string, int](),
     values: @[]
   )
 
@@ -265,23 +284,23 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return atom
   of Ident:
     return str(
-      $(&atom.getIdent())
+      atom.ident
     )
   of Integer:
     return str(
-      $(&atom.getInt())
+      $atom.integer
     )
   of Sequence:
     return str(
-      $(&atom.getSequence())
+      $atom.sequence
     )
   of UnsignedInt:
     return str(
-      $(&atom.getUint())
+      $atom.uinteger
     )
   of Boolean:
     return str(
-      $(&atom.getBool())
+      $atom.state
     )
   of Object:
     var msg = "<object structure>\n"
@@ -291,6 +310,10 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
 
     msg &= "<end object structure>"
     return msg.str()
+  of Float:
+    return str(
+      $atom.floatVal
+    )
   of Null:
     return str "Null"
 
@@ -314,4 +337,8 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
     return integer 0
   of Boolean:
     return atom.state.int.integer()
+  of Float:
+    return integer(
+      atom.floatVal.int
+    )
   of Object: return integer 0
