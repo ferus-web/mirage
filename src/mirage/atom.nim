@@ -40,8 +40,8 @@ type
     of Boolean:
       state*: bool
     of Object:
-      objFields*: Table[string, int]
-      objValues*: seq[MAtom]
+      fields*: Table[string, int]
+      values*: seq[MAtom]
     of Null: discard
     of Float:
       floatVal*: float64
@@ -58,7 +58,7 @@ proc `=destroy`*(dest: MAtom) =
     for atom in dest.sequence:
       `=destroy`(atom)
   of Object:
-    for atom in dest.objValues:
+    for atom in dest.values:
       `=destroy`(atom)
   else: discard 
 
@@ -274,8 +274,8 @@ proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
 proc obj*: MAtom {.inline.} =
   MAtom(
     kind: Object,
-    objFields: initTable[string, int](),
-    objValues: @[]
+    fields: initTable[string, int](),
+    values: @[]
   )
 
 proc toString*(atom: MAtom): MAtom {.inline.} =
