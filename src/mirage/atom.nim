@@ -305,8 +305,8 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
   of Object:
     var msg = "<object structure>\n"
     
-    for field, index in atom.objFields:
-      msg &= field & ": " & atom.objValues[index].crush("") & '\n'
+    for field, index in atom.fields:
+      msg &= field & ": " & atom.values[index].crush("") & '\n'
 
     msg &= "<end object structure>"
     return msg.str()
