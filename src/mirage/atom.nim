@@ -105,11 +105,11 @@ proc hash*(atom: MAtom): Hash {.inline.} =
   of Integer:
     h = h !& atom.integer.hash()
   of Object:
-    for k, v in atom.fields:
+    for k, v in atom.objFields:
       h = h !& k.hash()
       h = h !& v.hash()
 
-    h = h !& atom.values.hash()
+    h = h !& atom.objValues.hash()
   of Sequence:
     h = h !& atom.sequence.hash()
     h = h !& atom.lCap.hash()
