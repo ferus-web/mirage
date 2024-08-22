@@ -70,9 +70,8 @@ proc getClause*(interpreter: PulsarInterpreter, id: Option[int] = none int): Opt
 
 proc get*(interpreter: PulsarInterpreter, id: uint, ignoreLocalityRules: bool = false): Option[MAtom] =
   if interpreter.stack.contains(id):
-    let allowAccess = interpreter.locals[id] == (&interpreter.getClause()).name or ignoreLocalityRules
-    if interpreter.locals.contains(id) and 
-      not allowAccess:
+    if interpreter.locals.contains(id) and
+      not (interpreter.locals[id] == (&interpreter.getClause()).name or ignoreLocalityRules):
       return
 
     return some(interpreter.stack[id])
