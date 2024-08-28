@@ -1,6 +1,0 @@
-nimTitle	operation	mirage/runtime/pulsar/operation.html	module src/mirage/runtime/pulsar/operation		0
-nim	MirageOperationJitThreshold	mirage/runtime/pulsar/operation.html#MirageOperationJitThreshold	const MirageOperationJitThreshold		9
-nim	Operation	mirage/runtime/pulsar/operation.html#Operation	object Operation		12
-nim	expand	mirage/runtime/pulsar/operation.html#expand,Operation	proc expand(operation: Operation): string		26
-nim	shouldCompile	mirage/runtime/pulsar/operation.html#shouldCompile,Operation	proc shouldCompile(operation: Operation): bool		36
-nim	consume	mirage/runtime/pulsar/operation.html#consume,Operation,MAtomKind,string,bool,Option[int]	proc consume(operation: var Operation; kind: MAtomKind; expects: string;\n        enforce: bool = true; position: Option[int] = none(int)): MAtom		39

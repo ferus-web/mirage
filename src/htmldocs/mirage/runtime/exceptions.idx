@@ -1,5 +1,0 @@
-nimTitle	exceptions	mirage/runtime/exceptions.html	module src/mirage/runtime/exceptions		0
-nim	ExceptionTrace	mirage/runtime/exceptions.html#ExceptionTrace	type ExceptionTrace		5
-nim	RuntimeException	mirage/runtime/exceptions.html#RuntimeException	type RuntimeException		11
-nim	WrongType	mirage/runtime/exceptions.html#WrongType	type WrongType		16
-nim	wrongType	mirage/runtime/exceptions.html#wrongType,MAtomKind,MAtomKind	proc wrongType(expected, got: MAtomKind): WrongType		18

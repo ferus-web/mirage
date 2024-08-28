@@ -1,3 +1,0 @@
-nimTitle	utils	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/utils.html	module mirage/utils		0
-nim	`*`	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/utils.html#*,Option[T]	proc `*`[T](opt: Option[T]): bool		8
-nim	`&`	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/utils.html#&,Option[T]	proc `&`[T](opt: Option[T]): T		11
