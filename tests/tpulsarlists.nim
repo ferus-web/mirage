@@ -2,7 +2,8 @@ import std/[tables, options]
 import mirage/atom
 import mirage/runtime/pulsar/interpreter
 
-let i = newPulsarInterpreter("""
+let i = newPulsarInterpreter(
+  """
 CLAUSE main
   1 LOADL 0 
   2 SCAPL 0 34 
@@ -16,7 +17,8 @@ CLAUSE main
   10 INC 1
   11 JUMP 6
 END main
-""")
+"""
+)
 
 analyze i
 run i

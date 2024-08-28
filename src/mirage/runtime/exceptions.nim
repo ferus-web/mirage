@@ -15,9 +15,5 @@ type
 
   WrongType* = ref object of RuntimeException
 
-proc wrongType*(
-  expected, got: MAtomKind
-): WrongType {.inline, noSideEffect, gcsafe.} =
-  WrongType(
-    message: "Expected $1; got $2 instead." % [$expected, $got]
-  )
+proc wrongType*(expected, got: MAtomKind): WrongType {.inline, noSideEffect, gcsafe.} =
+  WrongType(message: "Expected $1; got $2 instead." % [$expected, $got])

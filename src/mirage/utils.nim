@@ -10,4 +10,5 @@ proc `*`*[T](opt: Option[T]): bool =
 
 proc `&`*[T](opt: Option[T]): T =
   unsafeGet opt
+
 {.pop.}

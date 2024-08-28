@@ -1,0 +1,61 @@
+nimTitle	shared	mirage/runtime/shared.html	module src/mirage/runtime/shared		0
+nim	tkComment	mirage/runtime/shared.html#tkComment	TokenKind.tkComment		5
+nim	tkOperation	mirage/runtime/shared.html#tkOperation	TokenKind.tkOperation		5
+nim	tkQuotedString	mirage/runtime/shared.html#tkQuotedString	TokenKind.tkQuotedString		5
+nim	tkInteger	mirage/runtime/shared.html#tkInteger	TokenKind.tkInteger		5
+nim	tkDouble	mirage/runtime/shared.html#tkDouble	TokenKind.tkDouble		5
+nim	tkWhitespace	mirage/runtime/shared.html#tkWhitespace	TokenKind.tkWhitespace		5
+nim	tkClause	mirage/runtime/shared.html#tkClause	TokenKind.tkClause		5
+nim	tkIdent	mirage/runtime/shared.html#tkIdent	TokenKind.tkIdent		5
+nim	tkEnd	mirage/runtime/shared.html#tkEnd	TokenKind.tkEnd		5
+nim	TokenKind	mirage/runtime/shared.html#TokenKind	enum TokenKind		5
+nim	Token	mirage/runtime/shared.html#Token	object Token		16
+nim	Call	mirage/runtime/shared.html#Call	Ops.Call		39
+nim	LoadInt	mirage/runtime/shared.html#LoadInt	Ops.LoadInt		39
+nim	LoadStr	mirage/runtime/shared.html#LoadStr	Ops.LoadStr		39
+nim	Jump	mirage/runtime/shared.html#Jump	Ops.Jump		39
+nim	Add	mirage/runtime/shared.html#Add	Ops.Add		39
+nim	Mult	mirage/runtime/shared.html#Mult	Ops.Mult		39
+nim	Div	mirage/runtime/shared.html#Div	Ops.Div		39
+nim	Sub	mirage/runtime/shared.html#Sub	Ops.Sub		39
+nim	Equate	mirage/runtime/shared.html#Equate	Ops.Equate		39
+nim	Return	mirage/runtime/shared.html#Return	Ops.Return		39
+nim	AddInt	mirage/runtime/shared.html#AddInt	Ops.AddInt		39
+nim	AddStr	mirage/runtime/shared.html#AddStr	Ops.AddStr		39
+nim	SubInt	mirage/runtime/shared.html#SubInt	Ops.SubInt		39
+nim	LoadList	mirage/runtime/shared.html#LoadList	Ops.LoadList		39
+nim	AddList	mirage/runtime/shared.html#AddList	Ops.AddList		39
+nim	SetCapList	mirage/runtime/shared.html#SetCapList	Ops.SetCapList		39
+nim	PopList	mirage/runtime/shared.html#PopList	Ops.PopList		39
+nim	PopListPrefix	mirage/runtime/shared.html#PopListPrefix	Ops.PopListPrefix		39
+nim	CastInt	mirage/runtime/shared.html#CastInt	Ops.CastInt		39
+nim	CastStr	mirage/runtime/shared.html#CastStr	Ops.CastStr		39
+nim	LoadUint	mirage/runtime/shared.html#LoadUint	Ops.LoadUint		39
+nim	LoadBool	mirage/runtime/shared.html#LoadBool	Ops.LoadBool		39
+nim	Swap	mirage/runtime/shared.html#Swap	Ops.Swap		39
+nim	JumpOnError	mirage/runtime/shared.html#JumpOnError	Ops.JumpOnError		39
+nim	GreaterThanInt	mirage/runtime/shared.html#GreaterThanInt	Ops.GreaterThanInt		39
+nim	LesserThanInt	mirage/runtime/shared.html#LesserThanInt	Ops.LesserThanInt		39
+nim	LoadObject	mirage/runtime/shared.html#LoadObject	Ops.LoadObject		39
+nim	CreateField	mirage/runtime/shared.html#CreateField	Ops.CreateField		39
+nim	FastWriteField	mirage/runtime/shared.html#FastWriteField	Ops.FastWriteField		39
+nim	WriteField	mirage/runtime/shared.html#WriteField	Ops.WriteField		39
+nim	CrashInterpreter	mirage/runtime/shared.html#CrashInterpreter	Ops.CrashInterpreter		39
+nim	Increment	mirage/runtime/shared.html#Increment	Ops.Increment		39
+nim	Decrement	mirage/runtime/shared.html#Decrement	Ops.Decrement		39
+nim	Mult3xBatch	mirage/runtime/shared.html#Mult3xBatch	Ops.Mult3xBatch		39
+nim	Mult2xBatch	mirage/runtime/shared.html#Mult2xBatch	Ops.Mult2xBatch		39
+nim	MarkHomogenous	mirage/runtime/shared.html#MarkHomogenous	Ops.MarkHomogenous		39
+nim	LoadNull	mirage/runtime/shared.html#LoadNull	Ops.LoadNull		39
+nim	MarkGlobal	mirage/runtime/shared.html#MarkGlobal	Ops.MarkGlobal		39
+nim	ReadRegister	mirage/runtime/shared.html#ReadRegister	Ops.ReadRegister		39
+nim	PassArgument	mirage/runtime/shared.html#PassArgument	Ops.PassArgument		39
+nim	ResetArgs	mirage/runtime/shared.html#ResetArgs	Ops.ResetArgs		39
+nim	CopyAtom	mirage/runtime/shared.html#CopyAtom	Ops.CopyAtom		39
+nim	MoveAtom	mirage/runtime/shared.html#MoveAtom	Ops.MoveAtom		39
+nim	LoadFloat	mirage/runtime/shared.html#LoadFloat	Ops.LoadFloat		39
+nim	Ops	mirage/runtime/shared.html#Ops	enum Ops		39
+nim	OpCodeToTable	mirage/runtime/shared.html#OpCodeToTable	const OpCodeToTable		209
+nim	OpCodeToString	mirage/runtime/shared.html#OpCodeToString	const OpCodeToString		252
+nim	toOp	mirage/runtime/shared.html#toOp,string	proc toOp(op: string): Ops		260
+nim	opToString	mirage/runtime/shared.html#opToString,Ops	proc opToString(op: Ops): string		269

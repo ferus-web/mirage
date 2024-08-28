@@ -3,7 +3,8 @@ import mirage/atom
 import mirage/runtime/pulsar/interpreter
 import mirage/runtime/exceptions
 
-let i = newPulsarInterpreter("""
+let i = newPulsarInterpreter(
+  """
 CLAUSE other
   1 LOADI   1 0  # control integer
   2 LOADS   2 "lol"
@@ -15,7 +16,8 @@ CLAUSE main
   2 CALL print 0
   3 CALL other
 END main
-""")
+"""
+)
 analyze i
 
 run i

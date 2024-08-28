@@ -60,7 +60,8 @@ proc `=destroy`*(dest: MAtom) =
   of Object:
     for atom in dest.objValues:
       `=destroy`(atom)
-  else: discard 
+  else:
+    discard
 
 #[
 proc `=copy`*(dest: var MAtom, src: MAtom) =
@@ -120,11 +121,12 @@ proc hash*(atom: MAtom): Hash {.inline.} =
     h = h !& atom.state.hash()
   of Float:
     h = h !& atom.floatVal.hash()
-  else: discard
+  else:
+    discard
 
   !$h
 
-proc crush*(atom: MAtom, id: string, quote: bool = true): string {.inline.} =
+proc crush*(atom: MAtom, id: string = "", quote: bool = true): string {.inline.} =
   case atom.kind
   of String:
     if quote:
@@ -163,7 +165,9 @@ proc setCap*(atom: var MAtom, cap: int) {.inline.} =
   of String:
     atom.sCap = some(cap)
   else:
-    raise newException(ValueError, "Attempt to set cap on a non-container atom: " & $atom.kind)
+    raise newException(
+      ValueError, "Attempt to set cap on a non-container atom: " & $atom.kind
+    )
 
 proc getCap*(atom: var MAtom): int {.inline.} =
   case atom.kind
@@ -174,7 +178,9 @@ proc getCap*(atom: var MAtom): int {.inline.} =
     if *atom.sCap:
       return &atom.sCap
   else:
-    raise newException(ValueError, "Attempt to get the cap of a non-container atom: " & $atom.kind)
+    raise newException(
+      ValueError, "Attempt to get the cap of a non-container atom: " & $atom.kind
+    )
 
   high(int)
 
@@ -182,7 +188,11 @@ proc markHomogenous*(atom: var MAtom) {.inline.} =
   if atom.kind == Sequence:
     atom.lHomogenous = true
   else:
-    raise newException(ValueError, "Attempt to mark a " & $atom.kind & " as a homogenous data type. Only List(s) can be marked as such.")
+    raise newException(
+      ValueError,
+      "Attempt to mark a " & $atom.kind &
+        " as a homogenous data type. Only List(s) can be marked as such.",
+    )
 
 proc len*(s: MAtomSeq): int {.borrow.}
 proc `[]`*(s: MAtomSeq, i: Natural): MAtom {.inline.} =
@@ -220,100 +230,62 @@ proc getSequence*(atom: MAtom): Option[seq[MAtom]] {.inline.} =
     return some(atom.sequence)
 
 proc str*(s: string): MAtom {.inline, gcsafe, noSideEffect.} =
-  MAtom(
-    kind: String,
-    str: s
-  )
+  MAtom(kind: String, str: s)
 
 proc integer*(i: int): MAtom {.inline, gcsafe, noSideEffect.} =
-  MAtom(
-    kind: Integer,
-    integer: i
-  )
+  MAtom(kind: Integer, integer: i)
 
 proc uinteger*(u: uint): MAtom {.inline, gcsafe, noSideEffect.} =
-  MAtom(
-    kind: UnsignedInt,
-    uinteger: u
-  )
+  MAtom(kind: UnsignedInt, uinteger: u)
 
 proc boolean*(b: bool): MAtom {.inline, gcsafe, noSideEffect.} =
-  MAtom(
-    kind: Boolean,
-    state: b
-  )
+  MAtom(kind: Boolean, state: b)
 
 proc floating*(value: float64): MAtom {.inline, gcsafe, noSideEffect.} =
-  MAtom(
-    kind: Float,
-    floatVal: value
-  )
+  MAtom(kind: Float, floatVal: value)
 
 proc boolean*(s: string): Option[MAtom] {.inline, gcsafe, noSideEffect.} =
   try:
-    return some(
-      MAtom(
-        kind: Boolean,
-        state: parseBool(s)
-      )
-    )
-  except ValueError: discard
+    return some(MAtom(kind: Boolean, state: parseBool(s)))
+  except ValueError:
+    discard
 
 proc ident*(i: string): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Ident, ident: i)
 
-proc null*: MAtom {.inline, gcsafe, noSideEffect.} =
+proc null*(): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Null)
 
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
-  MAtom(
-    kind: Sequence,
-    sequence: s
-  )
+  MAtom(kind: Sequence, sequence: s)
 
-proc obj*: MAtom {.inline.} =
-  MAtom(
-    kind: Object,
-    objFields: initTable[string, int](),
-    objValues: @[]
-  )
+proc obj*(): MAtom {.inline.} =
+  MAtom(kind: Object, objFields: initTable[string, int](), objValues: @[])
 
 proc toString*(atom: MAtom): MAtom {.inline.} =
   case atom.kind
   of String:
     return atom
   of Ident:
-    return str(
-      atom.ident
-    )
+    return str(atom.ident)
   of Integer:
-    return str(
-      $atom.integer
-    )
+    return str($atom.integer)
   of Sequence:
-    return str(
-      $atom.sequence
-    )
+    return str($atom.sequence)
   of UnsignedInt:
-    return str(
-      $atom.uinteger
-    )
+    return str($atom.uinteger)
   of Boolean:
-    return str(
-      $atom.state
-    )
+    return str($atom.state)
   of Object:
     var msg = "<object structure>\n"
-    
+
     for field, index in atom.objFields:
       msg &= field & ": " & atom.objValues[index].crush("") & '\n'
 
     msg &= "<end object structure>"
     return msg.str()
   of Float:
-    return str(
-      $atom.floatVal
-    )
+    return str($atom.floatVal)
   of Null:
     return str "Null"
 
@@ -338,7 +310,6 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
   of Boolean:
     return atom.state.int.integer()
   of Float:
-    return integer(
-      atom.floatVal.int
-    )
-  of Object: return integer 0
+    return integer(atom.floatVal.int)
+  of Object:
+    return integer 0

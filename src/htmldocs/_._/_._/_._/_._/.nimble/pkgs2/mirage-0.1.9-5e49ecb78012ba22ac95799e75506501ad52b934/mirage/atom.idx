@@ -1,0 +1,43 @@
+nimTitle	atom	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html	module mirage/atom		0
+nim	Null	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Null	MAtomKind.Null		11
+nim	String	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#String	MAtomKind.String		11
+nim	Integer	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Integer	MAtomKind.Integer		11
+nim	Sequence	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Sequence	MAtomKind.Sequence		11
+nim	Ident	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Ident	MAtomKind.Ident		11
+nim	UnsignedInt	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#UnsignedInt	MAtomKind.UnsignedInt		11
+nim	Boolean	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Boolean	MAtomKind.Boolean		11
+nim	Object	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Object	MAtomKind.Object		11
+nim	Float	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#Float	MAtomKind.Float		11
+nim	MAtomKind	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#MAtomKind	enum MAtomKind		11
+nim	AtomOverflowError	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#AtomOverflowError	object AtomOverflowError		22
+nim	SequenceError	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#SequenceError	object SequenceError		23
+nim	MAtom	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#MAtom	object MAtom		25
+nim	MAtomSeq	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#MAtomSeq	type MAtomSeq		49
+nim	`=destroy`	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#=destroy,MAtom	proc `=destroy`(dest: MAtom)		51
+nim	hash	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#hash,MAtom	proc hash(atom: MAtom): Hash		97
+nim	crush	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#crush,MAtom,string,bool	proc crush(atom: MAtom; id: string; quote: bool = true): string		127
+nim	setCap	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#setCap,MAtom,int	proc setCap(atom: var MAtom; cap: int)		159
+nim	getCap	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getCap,MAtom	proc getCap(atom: var MAtom): int		168
+nim	markHomogenous	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#markHomogenous,MAtom	proc markHomogenous(atom: var MAtom)		181
+nim	len	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#len,MAtomSeq	proc len(s: MAtomSeq): int		187
+nim	`[]`	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#[],MAtomSeq,Natural	proc `[]`(s: MAtomSeq; i: Natural): MAtom		188
+nim	getStr	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getStr,MAtom	proc getStr(atom: MAtom): Option[string]		194
+nim	getInt	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getInt,MAtom	proc getInt(atom: MAtom): Option[int]		198
+nim	getBool	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getBool,MAtom	proc getBool(atom: MAtom): Option[bool]		202
+nim	getIdent	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getIdent,MAtom	proc getIdent(atom: MAtom): Option[string]		206
+nim	getUint	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getUint,MAtom	proc getUint(atom: MAtom): Option[uint]		210
+nim	getFloat	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getFloat,MAtom	proc getFloat(atom: MAtom): Option[float64]		214
+nim	getSequence	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#getSequence,MAtom	proc getSequence(atom: MAtom): Option[seq[MAtom]]		218
+nim	str	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#str,string	proc str(s: string): MAtom		222
+nim	integer	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#integer,int	proc integer(i: int): MAtom		228
+nim	uinteger	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#uinteger,uint	proc uinteger(u: uint): MAtom		234
+nim	boolean	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#boolean,bool	proc boolean(b: bool): MAtom		240
+nim	floating	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#floating,float64	proc floating(value: float64): MAtom		246
+nim	boolean	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#boolean,string	proc boolean(s: string): Option[MAtom]		252
+nim	ident	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#ident,string	proc ident(i: string): MAtom		262
+nim	null	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#null_2	proc null(): MAtom		265
+nim	sequence	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#sequence,seq[MAtom]	proc sequence(s: seq[MAtom]): MAtom		268
+nim	obj	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#obj	proc obj(): MAtom		274
+nim	toString	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#toString,MAtom	proc toString(atom: MAtom): MAtom		281
+nim	toInt	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#toInt,MAtom	proc toInt(atom: MAtom): MAtom		320
+nimgrp	boolean	_._/_._/_._/_._/.nimble/pkgs2/mirage-0.1.9-5e49ecb78012ba22ac95799e75506501ad52b934/mirage/atom.html#boolean-procs-all	proc		240

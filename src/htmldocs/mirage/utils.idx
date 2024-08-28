@@ -1,0 +1,3 @@
+nimTitle	utils	mirage/utils.html	module src/mirage/utils		0
+nim	`*`	mirage/utils.html#*,Option[T]	proc `*`[T](opt: Option[T]): bool		8
+nim	`&`	mirage/utils.html#&,Option[T]	proc `&`[T](opt: Option[T]): T		11

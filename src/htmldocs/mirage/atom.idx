@@ -1,0 +1,43 @@
+nimTitle	atom	mirage/atom.html	module src/mirage/atom		0
+nim	Null	mirage/atom.html#Null	MAtomKind.Null		11
+nim	String	mirage/atom.html#String	MAtomKind.String		11
+nim	Integer	mirage/atom.html#Integer	MAtomKind.Integer		11
+nim	Sequence	mirage/atom.html#Sequence	MAtomKind.Sequence		11
+nim	Ident	mirage/atom.html#Ident	MAtomKind.Ident		11
+nim	UnsignedInt	mirage/atom.html#UnsignedInt	MAtomKind.UnsignedInt		11
+nim	Boolean	mirage/atom.html#Boolean	MAtomKind.Boolean		11
+nim	Object	mirage/atom.html#Object	MAtomKind.Object		11
+nim	Float	mirage/atom.html#Float	MAtomKind.Float		11
+nim	MAtomKind	mirage/atom.html#MAtomKind	enum MAtomKind		11
+nim	AtomOverflowError	mirage/atom.html#AtomOverflowError	object AtomOverflowError		22
+nim	SequenceError	mirage/atom.html#SequenceError	object SequenceError		23
+nim	MAtom	mirage/atom.html#MAtom	object MAtom		25
+nim	MAtomSeq	mirage/atom.html#MAtomSeq	type MAtomSeq		49
+nim	`=destroy`	mirage/atom.html#=destroy,MAtom	proc `=destroy`(dest: MAtom)		51
+nim	hash	mirage/atom.html#hash,MAtom	proc hash(atom: MAtom): Hash		98
+nim	crush	mirage/atom.html#crush,MAtom,string,bool	proc crush(atom: MAtom; id: string = ""; quote: bool = true): string		129
+nim	setCap	mirage/atom.html#setCap,MAtom,int	proc setCap(atom: var MAtom; cap: int)		161
+nim	getCap	mirage/atom.html#getCap,MAtom	proc getCap(atom: var MAtom): int		172
+nim	markHomogenous	mirage/atom.html#markHomogenous,MAtom	proc markHomogenous(atom: var MAtom)		187
+nim	len	mirage/atom.html#len,MAtomSeq	proc len(s: MAtomSeq): int		197
+nim	`[]`	mirage/atom.html#[],MAtomSeq,Natural	proc `[]`(s: MAtomSeq; i: Natural): MAtom		198
+nim	getStr	mirage/atom.html#getStr,MAtom	proc getStr(atom: MAtom): Option[string]		204
+nim	getInt	mirage/atom.html#getInt,MAtom	proc getInt(atom: MAtom): Option[int]		208
+nim	getBool	mirage/atom.html#getBool,MAtom	proc getBool(atom: MAtom): Option[bool]		212
+nim	getIdent	mirage/atom.html#getIdent,MAtom	proc getIdent(atom: MAtom): Option[string]		216
+nim	getUint	mirage/atom.html#getUint,MAtom	proc getUint(atom: MAtom): Option[uint]		220
+nim	getFloat	mirage/atom.html#getFloat,MAtom	proc getFloat(atom: MAtom): Option[float64]		224
+nim	getSequence	mirage/atom.html#getSequence,MAtom	proc getSequence(atom: MAtom): Option[seq[MAtom]]		228
+nim	str	mirage/atom.html#str,string	proc str(s: string): MAtom		232
+nim	integer	mirage/atom.html#integer,int	proc integer(i: int): MAtom		235
+nim	uinteger	mirage/atom.html#uinteger,uint	proc uinteger(u: uint): MAtom		238
+nim	boolean	mirage/atom.html#boolean,bool	proc boolean(b: bool): MAtom		241
+nim	floating	mirage/atom.html#floating,float64	proc floating(value: float64): MAtom		244
+nim	boolean	mirage/atom.html#boolean,string	proc boolean(s: string): Option[MAtom]		247
+nim	ident	mirage/atom.html#ident,string	proc ident(i: string): MAtom		253
+nim	null	mirage/atom.html#null_2	proc null(): MAtom		256
+nim	sequence	mirage/atom.html#sequence,seq[MAtom]	proc sequence(s: seq[MAtom]): MAtom		259
+nim	obj	mirage/atom.html#obj	proc obj(): MAtom		262
+nim	toString	mirage/atom.html#toString,MAtom	proc toString(atom: MAtom): MAtom		265
+nim	toInt	mirage/atom.html#toInt,MAtom	proc toInt(atom: MAtom): MAtom		292
+nimgrp	boolean	mirage/atom.html#boolean-procs-all	proc		241

@@ -1,0 +1,5 @@
+nimTitle	version	mirage/version.html	module src/mirage/version		0
+nim	MirageMajorVersion	mirage/version.html#MirageMajorVersion	const MirageMajorVersion		7
+nim	MirageMinorVersion	mirage/version.html#MirageMinorVersion	const MirageMinorVersion		8
+nim	MirageMicroVersion	mirage/version.html#MirageMicroVersion	const MirageMicroVersion		9
+nim	MirageVersionString	mirage/version.html#MirageVersionString	const MirageVersionString		10

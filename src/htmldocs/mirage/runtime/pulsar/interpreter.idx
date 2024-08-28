@@ -1,0 +1,27 @@
+nimTitle	interpreter	mirage/runtime/pulsar/interpreter.html	module src/mirage/runtime/pulsar/interpreter		0
+nim	Clause	mirage/runtime/pulsar/interpreter.html#Clause	object Clause		21
+nim	InvalidRegisterRead	mirage/runtime/pulsar/interpreter.html#InvalidRegisterRead	object InvalidRegisterRead		27
+nim	ClauseRollback	mirage/runtime/pulsar/interpreter.html#ClauseRollback	object ClauseRollback		29
+nim	Registers	mirage/runtime/pulsar/interpreter.html#Registers	object Registers		33
+nim	PulsarInterpreter	mirage/runtime/pulsar/interpreter.html#PulsarInterpreter	type PulsarInterpreter		37
+nim	SequenceBasedRegisters	mirage/runtime/pulsar/interpreter.html#SequenceBasedRegisters	const SequenceBasedRegisters		53
+nim	find	mirage/runtime/pulsar/interpreter.html#find,Clause,uint	proc find(clause: Clause; id: uint): Option[Operation]		56
+nim	getClause	mirage/runtime/pulsar/interpreter.html#getClause,PulsarInterpreter,Option[int]	proc getClause(interpreter: PulsarInterpreter; id: Option[int] = none int): Option[\n    Clause]		61
+nim	get	mirage/runtime/pulsar/interpreter.html#get,PulsarInterpreter,uint,bool	proc get(interpreter: PulsarInterpreter; id: uint; ignoreLocalityRules: bool = false): Option[\n    MAtom]		75
+nim	getClause	mirage/runtime/pulsar/interpreter.html#getClause,PulsarInterpreter,string	proc getClause(interpreter: PulsarInterpreter; name: string): Option[Clause]		88
+nim	analyze	mirage/runtime/pulsar/interpreter.html#analyze,PulsarInterpreter	proc analyze(interpreter: PulsarInterpreter)		95
+nim	addAtom	mirage/runtime/pulsar/interpreter.html#addAtom,PulsarInterpreter,MAtom,uint	proc addAtom(interpreter: PulsarInterpreter; atom: MAtom; id: uint)		122
+nim	hasBuiltin	mirage/runtime/pulsar/interpreter.html#hasBuiltin,PulsarInterpreter,string	proc hasBuiltin(interpreter: PulsarInterpreter; name: string): bool		126
+nim	registerBuiltin	mirage/runtime/pulsar/interpreter.html#registerBuiltin,PulsarInterpreter,string,proc(Operation)	proc registerBuiltin(interpreter: PulsarInterpreter; name: string;\n                builtin: proc (op: Operation))		129
+nim	callBuiltin	mirage/runtime/pulsar/interpreter.html#callBuiltin,PulsarInterpreter,string,Operation	proc callBuiltin(interpreter: PulsarInterpreter; name: string; op: Operation)		134
+nim	throw	mirage/runtime/pulsar/interpreter.html#throw,PulsarInterpreter,RuntimeException,bool	proc throw(interpreter: PulsarInterpreter; exception: RuntimeException;\n      bubbling: bool = false)		139
+nim	resolve	mirage/runtime/pulsar/interpreter.html#resolve,PulsarInterpreter,Clause,Operation	proc resolve(interpreter: PulsarInterpreter; clause: Clause; op: var Operation)		189
+nim	generateTraceback	mirage/runtime/pulsar/interpreter.html#generateTraceback,PulsarInterpreter	proc generateTraceback(interpreter: PulsarInterpreter): Option[string]		337
+nim	appendAtom	mirage/runtime/pulsar/interpreter.html#appendAtom,PulsarInterpreter,uint,uint	proc appendAtom(interpreter: PulsarInterpreter; src, dest: uint)		379
+nim	zeroOut	mirage/runtime/pulsar/interpreter.html#zeroOut,PulsarInterpreter,uint	proc zeroOut(interpreter: PulsarInterpreter; index: uint)		423
+nim	swap	mirage/runtime/pulsar/interpreter.html#swap,PulsarInterpreter,int,int	proc swap(interpreter: PulsarInterpreter; a, b: int)		429
+nim	execute	mirage/runtime/pulsar/interpreter.html#execute,PulsarInterpreter,Operation	proc execute(interpreter: PulsarInterpreter; op: var Operation)		444
+nim	setEntryPoint	mirage/runtime/pulsar/interpreter.html#setEntryPoint,PulsarInterpreter,string	proc setEntryPoint(interpreter: PulsarInterpreter; name: string)		998
+nim	run	mirage/runtime/pulsar/interpreter.html#run,PulsarInterpreter	proc run(interpreter: PulsarInterpreter)		1006
+nim	newPulsarInterpreter	mirage/runtime/pulsar/interpreter.html#newPulsarInterpreter,string	proc newPulsarInterpreter(source: string): PulsarInterpreter		1030
+nimgrp	getclause	mirage/runtime/pulsar/interpreter.html#getClause-procs-all	proc		61

@@ -1,0 +1,2 @@
+nimTitle	bytecodeopsetconv	mirage/runtime/pulsar/bytecodeopsetconv.html	module src/mirage/runtime/pulsar/bytecodeopsetconv		0
+nim	nextOperation	mirage/runtime/pulsar/bytecodeopsetconv.html#nextOperation,Tokenizer	proc nextOperation(dtok: var Tokenizer): Option[Operation]		8
