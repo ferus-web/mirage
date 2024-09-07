@@ -34,26 +34,34 @@ proc addOp*(gen: IRGenerator, operation: IROperation): uint {.inline.} =
   raise newException(FieldDefect, "Cannot find any clause with name: " & gen.currModule)
 
 proc loadInt*[V: SomeInteger](
-    gen: IRGenerator, position: uint, value: V | MAtom
+    gen: IRGenerator, position: uint, value: V
 ): uint {.inline, discardable.} =
   ## Load an integer into the memory space.
-  ## This is an overloadable function and can be provided:
-  ## * any kind of integer type (`int`, `int8`, `int16`, `int32`, `int64` or their unsigned counterparts)
-  ## * a `MAtom` that contains an integer.
+  ## This is an overloadable function and can be provided any kind of integer type (`int`, `int8`, `int16`, `int32`, `int64` or their unsigned counterparts)
   ##
   ## **See also:**
-  ## * `loadFloat proc<#loadFloat, IRGenerator, uint, MAtom`
+  ## * `loadInt proc<#loadInt, IRGenerator, uint, MAtom>`
+  ## * `loadFloat proc<#loadFloat, IRGenerator, uint, MAtom>`
 
-  when value is V:
-    gen.addOp(
-      IROperation(opCode: LoadInt, arguments: @[uinteger position, integer value])
-    )
-  else:
-    if value.kind != Integer:
-      raise
-        newException(ValueError, "Attempt to load " & $value.kind & " as an integer.")
+  gen.addOp(
+    IROperation(opCode: LoadInt, arguments: @[uinteger position, integer value])
+  )
 
-    gen.addOp(IROperation(opCode: LoadInt, arguments: @[uinteger position, value]))
+proc loadInt*(
+    gen: IRGenerator, position: uint, value: MAtom
+): uint {.inline, discardable.} =
+  ## Load an integer into the memory space.
+  ## This is an overloadable function and can be provided a `MAtom` that contains an integer.
+  ##
+  ## **See also:**
+  ## * `loadInt proc<#loadInt, IRGenerator, uint, SomeInteger>`
+  ## * `loadFloat proc<#loadFloat, IRGenerator, uint, MAtom>`
+
+  if value.kind != Integer:
+    raise
+      newException(ValueError, "Attempt to load " & $value.kind & " as an integer.")
+
+  gen.addOp(IROperation(opCode: LoadInt, arguments: @[uinteger position, value]))
 
 proc loadList*(gen: IRGenerator, position: uint): uint {.inline, discardable.} =
   ## Load a list (vector, sequence, whatever you like to call it) into memory.
