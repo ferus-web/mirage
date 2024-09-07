@@ -3,7 +3,8 @@ import mirage/atom
 import mirage/runtime/prelude
 import mirage/utils
 
-let i = newPulsarInterpreter("""
+let i = newPulsarInterpreter(
+  """
 CLAUSE otherclause
   1 CALL throw_a_dumb_error 
   2 LOADS 0 "other clause moment" 
@@ -15,11 +16,12 @@ CLAUSE main
   2 CALL print 0
   3 CALL otherclause
 END main
-""")
+"""
+)
 i.registerBuiltin(
   "throw_a_dumb_error",
   proc(op: Operation) =
-    i.throw(wrongType(String, Integer))
+    i.throw(wrongType(String, Integer)),
 )
 
 analyze i

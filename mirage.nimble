@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.9"
+version       = "1.0.0"
 author        = "xTrayambak"
 description   = "A nifty bytecode generator and runtime"
 license       = "MIT"
@@ -17,3 +17,10 @@ requires "pretty >= 0.1.0"
 
 task explorer, "Compile MIR explorer":
   exec "nim c -d:release -d:danger -o:explorer utils/explorer.nim"
+
+task fmt, "Format the code":
+  exec "nph src/"
+  exec "nph tests/"
+
+task docs, "Generate documents":
+  exec "nim doc --project --index:on src/mirage.nim"

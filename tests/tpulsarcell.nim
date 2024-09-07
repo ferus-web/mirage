@@ -20,6 +20,6 @@ END main
 
 while not t.isEof:
   let op = nextOperation t
-  
+
   if *op:
     print (&op)

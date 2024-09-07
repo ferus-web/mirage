@@ -35,7 +35,7 @@ type
       ident*: string
     of tkEnd:
       endClause*: string
-  
+
   Ops* = enum
     ## Call a function.
     ## Arguments:
@@ -59,7 +59,7 @@ type
     ## Arguments:
     ## `idx`: Integer - operation ID
     Jump = 0x3
-    
+
     ## Generic functions for dynamic values where the emitter did not know what types are going to be operated upon.
     ## These are slower than their "targetted-type" counterparts as they need to check for exceptions.
     Add = 0x4
@@ -134,7 +134,7 @@ type
 
     ## Load a boolean onto the stack
     LoadBool = 0x15
-    
+
     ## Swap two indices that hold atoms on the stack
     Swap = 0x16
 
@@ -146,7 +146,7 @@ type
 
     ## Same as EQU, but compares if `a` is lesser than `b`
     LesserThanInt = 0x19
-    
+
     ## Load an object onto the stack
     LoadObject = 0x1a
 
@@ -246,7 +246,7 @@ const
     "RARG": ResetArgs,
     "COPY": CopyAtom,
     "MOVE": MoveAtom,
-    "LOADF": LoadFloat
+    "LOADF": LoadFloat,
   }.toTable
 
   OpCodeToString* = static:
@@ -262,10 +262,7 @@ proc toOp*(op: string): Ops {.raises: [ValueError].} =
     if op in OpCodeToTable:
       return OpCodeToTable[op]
     else:
-      raise newException(
-        ValueError,
-        "Invalid operation: " & op
-      )
+      raise newException(ValueError, "Invalid operation: " & op)
   else:
     OpCodeToTable[op]
 

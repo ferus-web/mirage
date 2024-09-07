@@ -14,10 +14,7 @@ type
     pos*: uint
 
 proc newTokenizer*(input: string): Tokenizer {.inline.} =
-  Tokenizer(
-    input: input,
-    pos: 0'u
-  )
+  Tokenizer(input: input, pos: 0'u)
 
 proc forwards*(tokenizer: Tokenizer, n: uint) {.inline, gcsafe.} =
   ## Go forwards by `n` characters
@@ -99,7 +96,8 @@ proc consumeQuotedString*(tokenizer: Tokenizer): Token =
         case tokenizer.nextChar()
         of '\n', '\x0C', '\r':
           discard tokenizer.consumeNewline()
-        else: discard
+        else:
+          discard
     else:
       tokenizer.forwards(1)
 
@@ -129,7 +127,7 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
       (true, 1f)
     else:
       (false, 1f)
-  
+
   if hasSign:
     tokenizer.forwards(1)
 
@@ -137,7 +135,10 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
     integralPart: float64
     digit: uint32
 
-  while not tokenizer.isEof() and unpack(charToDecimalDigit(tokenizer.nextChar()), digit):
+  while not tokenizer.isEof() and unpack(
+    charToDecimalDigit(tokenizer.nextChar()), digit
+  )
+  :
     integralPart = integralPart * 10'f64 + digit.float64
     tokenizer.forwards(1)
 
@@ -202,22 +203,14 @@ proc consumeNumeric*(tokenizer: Tokenizer): Token =
       )
     else:
       none(int32)
-  
+
   if intValue.isSome:
-    Token(
-      kind: tkInteger,
-      iHasSign: hasSign,
-      integer: intValue.unsafeGet()
-    )
+    Token(kind: tkInteger, iHasSign: hasSign, integer: intValue.unsafeGet())
   else:
-    Token(
-      kind: tkDouble,
-      dHasSign: hasSign,
-      double: value
-    )
+    Token(kind: tkDouble, dHasSign: hasSign, double: value)
 
 proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
-  var 
+  var
     ident = Token(kind: tkIdent)
     operation = Token(kind: tkOperation)
     content: string
@@ -227,11 +220,12 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
     tokenizer.forwards(1)
 
     case c
-    of {'a'..'z'}, {'A'..'Z'}, '_':
+    of {'a' .. 'z'}, {'A' .. 'Z'}, '_':
       content &= c
     of Whitespace, '\0':
       break
-    else: discard
+    else:
+      discard
 
   if content in OpCodeToTable:
     operation.op = content
@@ -248,8 +242,7 @@ proc consumeCharacterBasedToken*(tokenizer: Tokenizer): Token =
 proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
   if tokenizer.isEof:
     raise newException(
-      TokenizerDefect,
-      "Attempt to tokenize more tokens despite hitting EOF."
+      TokenizerDefect, "Attempt to tokenize more tokens despite hitting EOF."
     )
 
   let c = tokenizer.nextChar()
@@ -258,7 +251,7 @@ proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
   of '#':
     tokenizer.forwards(2)
     return tokenizer.consumeComment()
-  of {'A'..'Z'}, {'a'..'z'}, '_':
+  of {'A' .. 'Z'}, {'a' .. 'z'}, '_':
     return tokenizer.consumeCharacterBasedToken()
   of '\r', ' ', '\0', '\\':
     tokenizer.forwards(1)
@@ -268,7 +261,7 @@ proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
       return tokenizer.consumeWhitespace()
   of '"':
     return tokenizer.consumeQuotedString()
-  of {'0'..'9'}:
+  of {'0' .. '9'}:
     return tokenizer.consumeNumeric()
   #[
   of '.':
@@ -301,6 +294,8 @@ proc maybeNextExcludingWhitespace*(tokenizer: Tokenizer): Option[Token] {.inline
   if next.kind != tkWhitespace:
     return some next
 
-iterator flow*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token {.inline.} =
+iterator flow*(
+    tokenizer: Tokenizer, includeWhitespace: bool = false
+): Token {.inline.} =
   while not tokenizer.isEof():
     yield tokenizer.next(includeWhitespace)

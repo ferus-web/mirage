@@ -2,7 +2,8 @@ import mirage/runtime/tokenizer
 import std/unittest
 import pretty
 
-let src = """
+let src =
+  """
 CLAUSE main
 LOADI 0 0
 LOADI 1 0

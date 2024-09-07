@@ -13,7 +13,7 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
 
   if opIdx.kind != tkInteger:
     return
-  
+
   op.index = opIdx.integer.uint64
 
   let opCode = dtok.nextExcludingWhitespace()
@@ -27,6 +27,6 @@ proc nextOperation*(dtok: var Tokenizer): Option[Operation] {.inline.} =
       continue
 
     break
-  
+
   discard dtok.consumeWhitespace()
   some op
