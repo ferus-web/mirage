@@ -243,6 +243,22 @@ proc decrementInt*(gen: IRGenerator, position: uint): uint {.inline, discardable
   ## Decrement an integer at the specified position by one.
   gen.addOp(IROperation(opCode: Decrement, arguments: @[uinteger position]))
 
+proc addFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
+  ## Add two floats together
+  gen.addOp(IROperation(opCode: AddFloat, arguments: @[uinteger a, uinteger b]))
+
+proc subFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
+  gen.addOp(IROperation(opCode: SubFloat, arguments: @[uinteger a, uinteger b]))
+
+proc multFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
+  gen.addOp(IROperation(opCode: MultFloat, arguments: @[uinteger a, uinteger b]))
+
+proc divFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
+  gen.addOp(IROperation(opCode: DivFloat, arguments: @[uinteger a, uinteger b]))
+
+proc powerFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
+  gen.addOp(IROperation(opCode: PowerFloat, arguments: @[uinteger a, uinteger b]))
+
 proc placeholder*(gen: IRGenerator, opCode: Ops): uint {.inline, discardable.} =
   gen.addOp(IROperation(opCode: opCode))
 
@@ -269,6 +285,30 @@ proc addInt*(
   ## Add two integers together.
   gen.addOp(
     IROperation(opCode: AddInt, arguments: @[uinteger destination, uinteger source])
+  )
+
+proc multInt*(
+    gen: IRGenerator, destination, source: uint
+): uint {.inline, discardable.} =
+  ## Multiply two integers together.
+  gen.addOp(
+    IROperation(opCode: MultInt, arguments: @[uinteger destination, uinteger source])
+  )
+
+proc divInt*(
+    gen: IRGenerator, destination, source: uint
+): uint {.inline, discardable.} =
+  ## Divide two integers together.
+  gen.addOp(
+    IROperation(opCode: DivInt, arguments: @[uinteger destination, uinteger source])
+  )
+
+proc powerInt*(
+    gen: IRGenerator, destination, source: uint
+): uint {.inline, discardable.} =
+  ## Exponentiate an integer
+  gen.addOp(
+    IROperation(opCode: PowerInt, arguments: @[uinteger destination, uinteger source])
   )
 
 proc subInt*(
