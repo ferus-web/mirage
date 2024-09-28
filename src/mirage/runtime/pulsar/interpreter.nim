@@ -218,7 +218,7 @@ proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation)
   of Jump:
     op.arguments &=
       op.consume(Integer, "JUMP expects exactly one integer as an argument")
-  of AddInt, AddStr, SubInt, MultInt, DivInt, PowerInt:
+  of AddInt, AddStr, SubInt, MultInt, DivInt, PowerInt, MultFloat, DivFloat, PowerFloat, AddFloat, SubFloat:
     for x in 1 .. 2:
       op.arguments &=
         op.consume(
@@ -1025,6 +1025,70 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
       integer(
         a ^ b
       ), pos
+    )
+    inc interpreter.currIndex
+  of SubFloat:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getFloat()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getFloat()
+      pos = uint(&op.arguments[0].getInt())
+
+    interpreter.addAtom(
+      floating(
+        a - b
+      ), pos
+    )
+    inc interpreter.currIndex
+  of AddFloat:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getFloat()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getFloat()
+      pos = uint(&op.arguments[0].getInt())
+
+    interpreter.addAtom(
+      floating(
+        a + b
+      ), pos
+    )
+    inc interpreter.currIndex
+  of DivFloat:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getFloat()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getFloat()
+      pos = uint(&op.arguments[0].getInt())
+
+    if b == 0f:
+      interpreter.addAtom(floating(Inf), pos)
+      inc interpreter.currIndex
+      return
+
+    interpreter.addAtom(
+      floating(a / b), pos
+    )
+    inc interpreter.currIndex
+  of MultFloat:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getFloat()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getFloat()
+      pos = uint(&op.arguments[0].getInt())
+
+    if b == 0:
+      interpreter.addAtom(floating(Inf), pos)
+      inc interpreter.currIndex
+      return
+
+    interpreter.addAtom(
+      floating(a * b), pos
+    )
+    inc interpreter.currIndex
+  of PowerFloat:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getFloat()
+      b = int(&(&interpreter.get(uint(&op.arguments[1].getInt()))).getFloat())
+      pos = uint(&op.arguments[0].getInt())
+
+    interpreter.addAtom(
+      floating(a ^ b), pos
     )
     inc interpreter.currIndex
   else:

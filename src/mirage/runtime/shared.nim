@@ -214,6 +214,21 @@ type
     ## Exponentiate an integer
     PowerInt = 0x2e
 
+    ## Multiply two floats
+    MultFloat = 0x2f
+
+    ## Divide two floats
+    DivFloat = 0x30
+
+    ## Exponentiate a float
+    PowerFloat = 0x31
+
+    ## Add two floats
+    AddFloat = 0x32
+
+    ## Subtract two floats
+    SubFloat = 0x33
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -258,7 +273,12 @@ const
     "LOADF": LoadFloat,
     "MULI": MultInt,
     "DIVI": DivInt,
-    "POWI": PowerInt
+    "POWI": PowerInt,
+    "MULF": MultFloat,
+    "DIVF": DivFloat,
+    "POWF": PowerFloat,
+    "ADDF": AddFloat,
+    "SUBF": SubFloat
   }.toTable
 
   OpCodeToString* = static:
