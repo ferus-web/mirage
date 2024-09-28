@@ -205,6 +205,15 @@ type
     ## Load a float onto a position
     LoadFloat = 0x2b
 
+    ## Multiply two integers
+    MultInt = 0x2c
+
+    ## Divide two integers
+    DivInt = 0x2d
+
+    ## Exponentiate an integer
+    PowerInt = 0x2e
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -247,6 +256,9 @@ const
     "COPY": CopyAtom,
     "MOVE": MoveAtom,
     "LOADF": LoadFloat,
+    "MULI": MultInt,
+    "DIVI": DivInt,
+    "POWI": PowerInt
   }.toTable
 
   OpCodeToString* = static:

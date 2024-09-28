@@ -3,7 +3,7 @@
 ##
 ## Copyright (C) 2024 Trayambak Rai
 
-import std/[tables, options]
+import std/[math, tables, options]
 import ../../[atom, utils]
 import ../[shared, tokenizer, exceptions]
 import ./[operation, bytecodeopsetconv]
@@ -218,7 +218,7 @@ proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation)
   of Jump:
     op.arguments &=
       op.consume(Integer, "JUMP expects exactly one integer as an argument")
-  of AddInt, AddStr, SubInt:
+  of AddInt, AddStr, SubInt, MultInt, DivInt, PowerInt:
     for x in 1 .. 2:
       op.arguments &=
         op.consume(
@@ -987,6 +987,45 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
       value = op.arguments[1]
 
     interpreter.addAtom(value, pos)
+    inc interpreter.currIndex
+  of MultInt:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getInt()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getInt()
+      pos = uint(&op.arguments[0].getInt())
+
+    interpreter.addAtom(
+      integer(
+        a * b
+      ), pos
+    )
+    inc interpreter.currIndex
+  of DivInt:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getInt()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getInt()
+      pos = uint(&op.arguments[0].getInt())
+
+    if b == 0:
+      interpreter.addAtom(floating(Inf), pos)
+      inc interpreter.currIndex
+      return
+
+    interpreter.addAtom(
+      floating(a / b), pos
+    )
+    inc interpreter.currIndex
+  of PowerInt:
+    let
+      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getInt()
+      b = &(&interpreter.get(uint(&op.arguments[1].getInt()))).getInt()
+      pos = uint(&op.arguments[0].getInt())
+
+    interpreter.addAtom(
+      integer(
+        a ^ b
+      ), pos
+    )
     inc interpreter.currIndex
   else:
     when defined(release):
