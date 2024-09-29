@@ -74,8 +74,7 @@ proc consumeNewline*(tokenizer: Tokenizer): Token {.inline.} =
   if c == '\r' and tokenizer.nextChar() == '\n':
     inc tokenizer.pos
 
-proc consumeQuotedString*(tokenizer: Tokenizer): Token =
-  let singleQuote = tokenizer.nextChar() == '\''
+proc consumeQuotedString*(tokenizer: Tokenizer, singleQuote: bool): Token =
   tokenizer.forwards(1)
   var qstr = Token(kind: tkQuotedString)
 
@@ -102,7 +101,7 @@ proc consumeQuotedString*(tokenizer: Tokenizer): Token =
       tokenizer.forwards(1)
 
     qstr.str &= c
-
+  
   qstr
 
 proc charToDecimalDigit*(c: char): Option[uint32] {.inline.} =
@@ -260,7 +259,9 @@ proc next*(tokenizer: Tokenizer, includeWhitespace: bool = false): Token =
     else:
       return tokenizer.consumeWhitespace()
   of '"':
-    return tokenizer.consumeQuotedString()
+    return tokenizer.consumeQuotedString(false)
+  of '\'':
+    return tokenizer.consumeQuotedString(true)
   of {'0' .. '9'}:
     return tokenizer.consumeNumeric()
   #[

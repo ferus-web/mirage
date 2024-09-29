@@ -4,6 +4,7 @@
 ## Copyright (C) 2024 Trayambak Rai
 
 import ./shared, ../runtime/shared, ../atom
+import ../utils
 import ../version
 
 proc emitOperation*(gen: IRGenerator, op: IROperation): string {.inline.} =
@@ -11,7 +12,16 @@ proc emitOperation*(gen: IRGenerator, op: IROperation): string {.inline.} =
   result &= opName & ' '
 
   for i, arg in op.arguments:
-    result &= arg.crush("") & ' '
+    if arg.kind != String:
+      result &= arg.crush() & ' '
+    else:
+      let content = &arg.getStr()
+      if content.contains('"'):
+        result &= '\'' & content & '\'' & ' '
+      elif content.contains('\''):
+        result &= '"' & content & '"' & ' '
+      else:
+        result &= arg.crush() & ' '
 
 proc emitModule*(gen: IRGenerator, module: CodeModule): string {.inline.} =
   when not defined(release):
