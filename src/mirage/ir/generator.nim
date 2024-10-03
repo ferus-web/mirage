@@ -362,6 +362,10 @@ proc moveAtom*(gen: IRGenerator, source, dest: uint): uint {.inline, discardable
   ## the destination index occupies what was previously the content stored at the source index.
   gen.addOp(IROperation(opCode: MoveAtom, arguments: @[uinteger source, uinteger dest]))
 
+proc copyAtom*(gen: IRGenerator, source, dest: uint): uint {.inline, discardable.} =
+  ## Copy an atom from one index to another.
+  gen.addOp(IROperation(opCode: CopyAtom, arguments: @[uinteger source, uinteger dest]))
+
 proc markHomogenous*(gen: IRGenerator, position: uint): uint {.inline, discardable.} =
   ## Mark a list as homogenous (i.e, it cannot store more than one type of value).
   ##
