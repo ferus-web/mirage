@@ -354,25 +354,36 @@ proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
     let clause = interpreter.getClause(currTrace.clause.some)
     assert *clause, "No clause found with ID: " & $currTrace.clause
 
-    var operation = &(&clause).find(currTrace.index)
-    interpreter.resolve(&clause, operation)
+    var op = (&clause).find(currTrace.index)
+    
+    if not *op:
+      msg &= "\n\tClause \"" & currTrace.exception.clause & "\", " & $(line)
 
-    let line =
-      # FIXME: weird stuff
-      if currTrace.exception.operation < 2:
-        currTrace.exception.operation
+      if *currTrace.next:
+        currTrace = &currTrace.next
       else:
-        currTrace.exception.operation - 1
-
-    msg &= "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $(line)
-
-    if *currTrace.next:
-      currTrace = &currTrace.next
+        msg &= "\n\t\t<uncomputable operation>"
+        break
     else:
-      msg &=
-        "\n\t\t" & operation.expand() & "\n\n" & $typeof(currTrace.exception) & ": " &
-        currTrace.exception.message & '\n'
-      break
+      var operation = move(&op)
+      interpreter.resolve(&clause, operation)
+
+      let line =
+        # FIXME: weird stuff
+        if currTrace.exception.operation < 2:
+          currTrace.exception.operation
+        else:
+          currTrace.exception.operation - 1
+
+      msg &= "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $(line)
+
+      if *currTrace.next:
+        currTrace = &currTrace.next
+      else:
+        msg &=
+          "\n\t\t" & operation.expand() & "\n\n" & $typeof(currTrace.exception) & ": " &
+          currTrace.exception.message & '\n'
+        break
 
   some(msg)
 
