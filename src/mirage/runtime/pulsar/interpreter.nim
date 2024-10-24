@@ -354,7 +354,14 @@ proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
     let clause = interpreter.getClause(currTrace.clause.some)
     assert *clause, "No clause found with ID: " & $currTrace.clause
 
-    var op = (&clause).find(currTrace.index)
+    let op = (&clause).find(currTrace.index)
+
+    let line =
+      # FIXME: weird stuff
+      if currTrace.exception.operation < 2:
+        currTrace.exception.operation
+      else:
+        currTrace.exception.operation - 1
     
     if not *op:
       msg &= "\n\tClause \"" & currTrace.exception.clause & "\", " & $(line)
@@ -362,18 +369,11 @@ proc generateTraceback*(interpreter: PulsarInterpreter): Option[string] =
       if *currTrace.next:
         currTrace = &currTrace.next
       else:
-        msg &= "\n\t\t<uncomputable operation>"
+        msg &= "\n\t\t<uncomputable operation>\n\n " & $typeof(currTrace.exception) & ": " & currTrace.exception.message & '\n'
         break
     else:
-      var operation = move(&op)
+      var operation = &op
       interpreter.resolve(&clause, operation)
-
-      let line =
-        # FIXME: weird stuff
-        if currTrace.exception.operation < 2:
-          currTrace.exception.operation
-        else:
-          currTrace.exception.operation - 1
 
       msg &= "\n\tClause \"" & currTrace.exception.clause & "\", operation " & $(line)
 
