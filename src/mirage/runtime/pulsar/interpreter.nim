@@ -585,18 +585,19 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
         AtomOverflowError,
         "Attempt to insert element beyond atom's limit of " & $(&list.lCap) & " items",
       )
+    
+    if list.lHomogenous:
+      let inferredType =
+        if list.sequence.len > 0:
+          some(list.sequence[0].kind)
+        else:
+          none(MAtomKind)
 
-    let inferredType =
-      if list.sequence.len > 0:
-        some(list.sequence[0].kind)
-      else:
-        none(MAtomKind)
-
-    if *inferredType and (&source).kind != &inferredType:
-      raise newException(
-        SequenceError,
-        "Attempt to add different type to sequence's homogenous type: " & $(&source).kind,
-      )
+      if *inferredType and (&source).kind != &inferredType:
+        raise newException(
+          SequenceError,
+          "Attempt to add different type to sequence's homogenous type: " & $(&source).kind,
+        )
 
     list.sequence.add(&source)
 
