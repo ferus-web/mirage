@@ -448,9 +448,8 @@ proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
   interpreter.zeroOut(a.uint)
   interpreter.zeroOut(b.uint)
 
-  swap(atomA, atomB)
-  interpreter.addAtom(&atomA, a.uint)
-  interpreter.addAtom(&atomB, b.uint)
+  interpreter.addAtom(&atomA, b.uint)
+  interpreter.addAtom(&atomB, a.uint)
 
 proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   when not defined(mirageNoJit):
