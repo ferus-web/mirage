@@ -229,9 +229,6 @@ type
     ## Subtract two floats
     SubFloat = 0x33
 
-    ## Read a value off of a sequence atom
-    SequenceReadIndex = 0x34
-
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -281,8 +278,7 @@ const
     "DIVF": DivFloat,
     "POWF": PowerFloat,
     "ADDF": AddFloat,
-    "SUBF": SubFloat,
-    "SRIX": SequenceReadIndex
+    "SUBF": SubFloat
   }.toTable
 
   OpCodeToString* = static:

@@ -331,15 +331,6 @@ proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation)
     op.arguments &= op.consume(Integer, "LOADF expects an integer at position 1")
 
     op.arguments &= op.consume(Float, "LOADF expects an integer at position 2")
-  of SequenceReadIndex:
-    op.arguments &=
-      op.consume(Integer, "SRIX expects an integer at position 1")
-
-    op.arguments &=
-      op.consume(Integer, "SRIX expects an integer at position 2")
-
-    op.arguments &=
-      op.consume(Integer, "SRIX expects an integer at position 3")
 
   op.rawArgs = mRawArgs
 
@@ -1110,18 +1101,6 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     interpreter.addAtom(
       floating(a ^ b), pos
     )
-    inc interpreter.currIndex
-  of SequenceReadIndex:
-    let
-      a = &(&interpreter.get(uint(&op.arguments[0].getInt()))).getSequence() # target sequence
-      b = &op.arguments[1].getInt() # position of element
-      pos = &op.arguments[2].getInt() # address to store result at
-
-    if b > a.sequence.len or b < 0:
-      interpreter.addAtom(obj(), pos)
-    else:
-      interpreter.addAtom(a.sequence[b].deepCopy(), pos)
-
     inc interpreter.currIndex
   else:
     when defined(release):
