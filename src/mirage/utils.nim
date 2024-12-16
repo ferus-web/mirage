@@ -4,7 +4,7 @@
 
 import std/options
 
-{.push checks: off, inline, noSideEffect, gcsafe.}
+{.push checks: on, inline, noSideEffect, gcsafe.}
 proc `*`*[T](opt: Option[T]): bool =
   opt.isSome
 

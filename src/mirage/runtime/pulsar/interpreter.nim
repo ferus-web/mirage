@@ -52,7 +52,7 @@ type
 
 const SequenceBasedRegisters* = [some(1)]
 
-{.push checks: off, inline.}
+{.push checks: on, inline.}
 proc find*(clause: Clause, id: uint): Option[Operation] =
   for op in clause.operations:
     if op.index == id:
@@ -118,7 +118,7 @@ proc analyze*(interpreter: PulsarInterpreter) =
       interpreter.tokenizer.pos = cTok.pos
       continue
 
-{.push checks: off, inline.}
+{.push checks: on, inline.}
 proc addAtom*(interpreter: PulsarInterpreter, atom: MAtom, id: uint) =
   interpreter.stack[id] = atom
   interpreter.locals[id] = interpreter.clauses[interpreter.currClause].name
