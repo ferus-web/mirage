@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.0.42"
+version       = "1.0.43"
 author        = "xTrayambak"
 description   = "A nifty bytecode generator and runtime"
 license       = "MIT"
