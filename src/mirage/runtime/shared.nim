@@ -229,6 +229,11 @@ type
     ## Subtract two floats
     SubFloat = 0x33
 
+    ## Zero-out the retval register
+    ## Useful for immediately clearing memory if the return value is to be discarded
+    ## This opcode is ignored if the retval register is already empty
+    ZeroRetval = 0x34
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -278,7 +283,8 @@ const
     "DIVF": DivFloat,
     "POWF": PowerFloat,
     "ADDF": AddFloat,
-    "SUBF": SubFloat
+    "SUBF": SubFloat,
+    "ZRETV": ZeroRetval
   }.toTable
 
   OpCodeToString* = static:

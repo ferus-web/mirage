@@ -187,6 +187,7 @@ proc throw*(
   interpreter.trace = newTrace
 
 proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation) =
+  echo "resolv"
   let mRawArgs = deepCopy(op.rawArgs)
   op.arguments.reset()
 
@@ -317,7 +318,7 @@ proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation)
         raise exc
   of PassArgument:
     op.arguments &= op.consume(Integer, "PARG expects an integer at position 1")
-  of ResetArgs:
+  of ResetArgs, ZeroRetval:
     discard
   of CopyAtom:
     op.arguments &= op.consume(Integer, "COPY expects an integer at position 1")
@@ -1102,6 +1103,8 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
       floating(a ^ b), pos
     )
     inc interpreter.currIndex
+  of ZeroRetval:
+    interpreter.registers.retVal = some(null())
   else:
     when defined(release):
       inc interpreter.currIndex
@@ -1136,7 +1139,7 @@ proc run*(interpreter: PulsarInterpreter) =
       interpreter.currIndex = clause.rollback.opIndex
       continue
 
-    var operation = deepCopy(&op)
+    var operation = &op
 
     interpreter.resolve(clause, operation)
     interpreter.execute(operation)
