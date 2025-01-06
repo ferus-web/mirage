@@ -259,6 +259,9 @@ proc divFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
 proc powerFloat*(gen: IRGenerator, a, b: uint): uint {.inline, discardable.} =
   gen.addOp(IROperation(opCode: PowerFloat, arguments: @[uinteger a, uinteger b]))
 
+proc zeroRetval*(gen: IRGenerator): uint {.inline, discardable.} =
+  gen.addOp(IROperation(opCode: ZeroRetval))
+
 proc placeholder*(gen: IRGenerator, opCode: Ops): uint {.inline, discardable.} =
   gen.addOp(IROperation(opCode: opCode))
 
