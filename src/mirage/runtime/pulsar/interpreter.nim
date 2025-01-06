@@ -1104,6 +1104,7 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     inc interpreter.currIndex
   of ZeroRetval:
     interpreter.registers.retVal = some(null())
+    inc interpreter.currIndex
   else:
     when defined(release):
       inc interpreter.currIndex
