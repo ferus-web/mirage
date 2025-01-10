@@ -267,6 +267,12 @@ proc null*(): MAtom {.inline, gcsafe, noSideEffect.} =
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
   MAtom(kind: Sequence, sequence: s)
 
+proc bigint*(value: uint): MAtom =
+  MAtom(kind: BigInteger, bigint: initBigInt(value))
+
+proc bigint*(value: string): MAtom =
+  MAtom(kind: BigInteger, bigint: initBigInt(value))
+
 proc obj*(): MAtom {.inline.} =
   MAtom(kind: Object, objFields: initTable[string, int](), objValues: @[])
 
