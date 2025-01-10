@@ -267,7 +267,7 @@ proc null*(): MAtom {.inline, gcsafe, noSideEffect.} =
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
   MAtom(kind: Sequence, sequence: s)
 
-proc bigint*(value: uint): MAtom =
+proc bigint*(value: SomeSignedInt): MAtom =
   MAtom(kind: BigInteger, bigint: initBigInt(value))
 
 proc bigint*(value: string): MAtom =
