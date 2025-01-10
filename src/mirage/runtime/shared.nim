@@ -284,8 +284,7 @@ const
     "POWF": PowerFloat,
     "ADDF": AddFloat,
     "SUBF": SubFloat,
-    "ZRETV": ZeroRetval,
-    "LOADBI": LoadBigInt
+    "ZRETV": ZeroRetval
   }.toTable
 
   OpCodeToString* = static:
