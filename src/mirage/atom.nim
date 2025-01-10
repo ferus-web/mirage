@@ -64,8 +64,6 @@ proc `=destroy`*(dest: MAtom) =
   of Object:
     for atom in dest.objValues:
       `=destroy`(atom)
-  of BigInteger:
-    `=destroy`(dest.bigint) # Free-up the memory that the GNU MP bigint has allocated.
   else:
     discard
 
