@@ -4,6 +4,7 @@
 ## Copyright (C) 2024 Trayambak Rai
 
 import std/[strutils, tables, hashes, options]
+import pkg/gmp
 import ./runtime/[shared]
 import ./utils
 
@@ -18,6 +19,7 @@ type
     Boolean = 6
     Object = 7
     Float = 8
+    BigInteger = 9
 
   AtomOverflowError* = object of CatchableError
   SequenceError* = object of CatchableError
@@ -45,6 +47,8 @@ type
     of Null: discard
     of Float:
       floatVal*: float64
+    of BigInteger:
+      bigint*: BigInt
 
   MAtomSeq* = distinct seq[MAtom]
 
@@ -155,6 +159,8 @@ proc crush*(atom: MAtom, id: string = "", quote: bool = true): string {.inline.}
     result &= $atom.floatVal
   of Null:
     return "NULL"
+  of BigInteger:
+    return $atom.bigint
   of Object:
     return "Object"
 
@@ -259,6 +265,12 @@ proc null*(): MAtom {.inline, gcsafe, noSideEffect.} =
 proc sequence*(s: seq[MAtom]): MAtom {.inline.} =
   MAtom(kind: Sequence, sequence: s)
 
+proc bigint*(value: SomeSignedInt): MAtom =
+  MAtom(kind: BigInteger, bigint: initBigInt(value))
+
+proc bigint*(value: string): MAtom =
+  MAtom(kind: BigInteger, bigint: initBigInt(value))
+
 proc obj*(): MAtom {.inline.} =
   MAtom(kind: Object, objFields: initTable[string, int](), objValues: @[])
 
@@ -288,6 +300,8 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return str($atom.floatVal)
   of Null:
     return str "Null"
+  of BigInteger:
+    return str $atom.bigint
 
 proc toInt*(atom: MAtom): MAtom {.inline.} =
   case atom.kind
@@ -311,5 +325,5 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
     return atom.state.int.integer()
   of Float:
     return integer(atom.floatVal.int)
-  of Object:
+  of Object, BigInteger:
     return integer 0

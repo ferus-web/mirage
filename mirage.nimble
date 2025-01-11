@@ -1,6 +1,6 @@
 # Package
 
-version       = "1.0.44"
+version       = "1.1.0"
 author        = "xTrayambak"
 description   = "A nifty bytecode generator and runtime"
 license       = "MIT"
@@ -24,3 +24,5 @@ task fmt, "Format the code":
 
 task docs, "Generate documents":
   exec "nim doc --project --index:on src/mirage.nim"
+
+requires "https://github.com/ferus-web/nim-gmp >= 0.1.0"
