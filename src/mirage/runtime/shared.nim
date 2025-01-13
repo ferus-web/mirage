@@ -25,7 +25,7 @@ type
     of tkOperation:
       op*: string
     of tkDouble:
-      double*: float32
+      double*: float64
       dHasSign*: bool
     of tkWhitespace:
       whitespace*: string
