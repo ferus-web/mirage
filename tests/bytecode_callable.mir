@@ -1,0 +1,11 @@
+CLAUSE x
+	1 LOADS 2 "Hello from the function x!"
+	2 CALL print 2
+END x
+
+CLAUSE main
+	1 LOADBC 1 "x"
+	2 EXEBC 1
+	3 LOADS 3 "We're back in the main function"
+	4 CALL print 3
+END main

@@ -331,6 +331,11 @@ proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation)
     op.arguments &= op.consume(Integer, "LOADF expects an integer at position 1")
 
     op.arguments &= op.consume(Float, "LOADF expects an integer at position 2")
+  of LoadBytecodeCallable:
+    op.arguments &= op.consume(Integer, "LOADBC expects an integer at position 1")
+    op.arguments &= op.consume(String, "LOADBC expects a string at position 2")
+  of ExecuteBytecodeCallable:
+    op.arguments &= op.consume(Integer, "EXEBC expects an integer at position 1")
 
   op.rawArgs = mRawArgs
 
@@ -451,6 +456,35 @@ proc swap*(interpreter: PulsarInterpreter, a, b: int) {.inline.} =
   interpreter.addAtom(&atomA, b.uint)
   interpreter.addAtom(&atomB, a.uint)
 
+proc call*(interpreter: PulsarInterpreter, name: string, op: Operation) =
+  if interpreter.hasBuiltin(name):
+    interpreter.callBuiltin(name, op)
+    inc interpreter.currIndex
+  else:
+    let
+      (index, clause) = (
+        proc(): tuple[index: int, clause: Option[Clause]] {.gcsafe.} =
+          for i, cls in interpreter.clauses:
+            if cls.name == name:
+              return (index: i, clause: some cls)
+      )()
+
+    if *clause:
+      var newClause = &clause # get the new clause
+
+      # setup rollback points
+      newClause.rollback.clause = interpreter.currClause # points to current clause
+      newClause.rollback.opIndex = interpreter.currIndex + 1
+      # otherwise we'll get stuck in an infinite recursion
+
+      # set clause pointer to new index
+      interpreter.currClause = index
+      interpreter.clauses[index] = newClause # store clause w/ rollback data to clauses
+      interpreter.currIndex = 1
+      # set execution op index to 0 to start from the beginning
+    else:
+      raise newException(ValueError, "Reference to unknown clause: " & name)
+
 proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   when not defined(mirageNoJit):
     inc op.called
@@ -511,34 +545,8 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
     interpreter.currClause = (&clause).rollback.clause
     interpreter.currIndex = (&clause).rollback.opIndex
   of Call:
-    if interpreter.hasBuiltin(&op.arguments[0].getStr()):
-      interpreter.callBuiltin(&op.arguments[0].getStr(), op)
-      inc interpreter.currIndex
-    else:
-      let
-        name = &op.arguments[0].getStr()
-        (index, clause) = (
-          proc(): tuple[index: int, clause: Option[Clause]] {.gcsafe.} =
-            for i, cls in interpreter.clauses:
-              if cls.name == name:
-                return (index: i, clause: some cls)
-        )()
-
-      if *clause:
-        var newClause = &clause # get the new clause
-
-        # setup rollback points
-        newClause.rollback.clause = interpreter.currClause # points to current clause
-        newClause.rollback.opIndex = interpreter.currIndex + 1
-          # otherwise we'll get stuck in an infinite recursion
-
-        # set clause pointer to new index
-        interpreter.currClause = index
-        interpreter.clauses[index] = newClause # store clause w/ rollback data to clauses
-        interpreter.currIndex = 1
-          # set execution op index to 0 to start from the beginning
-      else:
-        raise newException(ValueError, "Reference to unknown clause: " & name)
+    let name = &op.arguments[0].getStr()
+    interpreter.call(name, op)
   of CastStr:
     let atom = interpreter.get((&op.arguments[0].getInt()).uint)
 
@@ -1105,6 +1113,18 @@ proc execute*(interpreter: PulsarInterpreter, op: var Operation) =
   of ZeroRetval:
     interpreter.registers.retVal = some(null())
     inc interpreter.currIndex
+  of LoadBytecodeCallable:
+    let
+      index = uint(&op.arguments[0].getInt())
+      clause = &op.arguments[1].getStr()
+
+    interpreter.addAtom(bytecodeCallable(clause), index)
+    inc interpreter.currIndex
+  of ExecuteBytecodeCallable:
+    let callable =
+      &getBytecodeClause(&interpreter.get(uint(&op.arguments[0].getInt())))
+
+    interpreter.call(callable, op)
   else:
     when defined(release):
       inc interpreter.currIndex

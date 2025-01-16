@@ -234,6 +234,13 @@ type
     ## This opcode is ignored if the retval register is already empty
     ZeroRetval = 0x34
 
+    ## Load a bytecode callable into memory
+    ## This just holds a reference to a clause
+    LoadBytecodeCallable = 0x35
+
+    ## Execute a bytecode callable
+    ExecuteBytecodeCallable = 0x36
+
 const
   OpCodeToTable* = {
     "CALL": Call,
@@ -284,7 +291,9 @@ const
     "POWF": PowerFloat,
     "ADDF": AddFloat,
     "SUBF": SubFloat,
-    "ZRETV": ZeroRetval
+    "ZRETV": ZeroRetval,
+    "LOADBC": LoadBytecodeCallable,
+    "EXEBC": ExecuteBytecodeCallable
   }.toTable
 
   OpCodeToString* = static:

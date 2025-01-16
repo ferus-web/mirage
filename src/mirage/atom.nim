@@ -20,6 +20,8 @@ type
     Object = 7
     Float = 8
     BigInteger = 9
+    BytecodeCallable = 10
+    NativeCallable = 11
 
   AtomOverflowError* = object of CatchableError
   SequenceError* = object of CatchableError
@@ -49,6 +51,10 @@ type
       floatVal*: float64
     of BigInteger:
       bigint*: BigInt
+    of BytecodeCallable:
+      clauseName*: string
+    of NativeCallable:
+      fn*: ptr proc()
 
   MAtomSeq* = distinct seq[MAtom]
 
@@ -163,6 +169,10 @@ proc crush*(atom: MAtom, id: string = "", quote: bool = true): string {.inline.}
     return $atom.bigint
   of Object:
     return "Object"
+  of BytecodeCallable:
+    return "Callable [" & atom.clauseName & ']'
+  of NativeCallable:
+    return "Native Callable"
 
 proc setCap*(atom: var MAtom, cap: int) {.inline.} =
   case atom.kind
@@ -247,6 +257,13 @@ proc uinteger*(u: uint): MAtom {.inline, gcsafe, noSideEffect.} =
 proc boolean*(b: bool): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Boolean, state: b)
 
+proc bytecodeCallable*(clause: string): MAtom {.inline, gcsafe, noSideEffect.} =
+  MAtom(kind: BytecodeCallable, clauseName: clause)
+
+proc getBytecodeClause*(atom: MAtom): Option[string] =
+  if atom.kind == BytecodeCallable:
+    return some(atom.clauseName)
+
 proc floating*(value: float64): MAtom {.inline, gcsafe, noSideEffect.} =
   MAtom(kind: Float, floatVal: value)
 
@@ -302,6 +319,10 @@ proc toString*(atom: MAtom): MAtom {.inline.} =
     return str "Null"
   of BigInteger:
     return str $atom.bigint
+  of BytecodeCallable:
+    return str atom.clauseName
+  of NativeCallable:
+    return str "<native code>"
 
 proc toInt*(atom: MAtom): MAtom {.inline.} =
   case atom.kind
@@ -325,5 +346,5 @@ proc toInt*(atom: MAtom): MAtom {.inline.} =
     return atom.state.int.integer()
   of Float:
     return integer(atom.floatVal.int)
-  of Object, BigInteger:
+  of Object, BigInteger, BytecodeCallable, NativeCallable:
     return integer 0
