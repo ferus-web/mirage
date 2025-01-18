@@ -54,7 +54,7 @@ type
     of BytecodeCallable:
       clauseName*: string
     of NativeCallable:
-      fn*: ptr proc()
+      fn*: proc()
 
   MAtomSeq* = distinct seq[MAtom]
 
@@ -70,8 +70,6 @@ proc `=destroy`*(dest: MAtom) =
   of Object:
     for atom in dest.objValues:
       `=destroy`(atom)
-  of NativeCallable:
-    discard
   else:
     discard
 
