@@ -70,6 +70,8 @@ proc `=destroy`*(dest: MAtom) =
   of Object:
     for atom in dest.objValues:
       `=destroy`(atom)
+  of NativeCallable:
+    discard
   else:
     discard
 
