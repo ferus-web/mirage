@@ -187,7 +187,7 @@ proc throw*(
   interpreter.trace = newTrace
 
 proc resolve*(interpreter: PulsarInterpreter, clause: Clause, op: var Operation) =
-  let mRawArgs = deepCopy(op.rawArgs)
+  let mRawArgs = op.rawArgs
   op.arguments.reset()
 
   case op.opCode
