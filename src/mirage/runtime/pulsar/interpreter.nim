@@ -76,12 +76,12 @@ proc get*(
     interpreter: PulsarInterpreter, id: uint, ignoreLocalityRules: bool = false
 ): Option[MAtom] =
   if interpreter.stack.contains(id):
-    if interpreter.locals.contains(id) and
+    #[ if interpreter.locals.contains(id) and
         not (
           interpreter.locals[id] == (&interpreter.getClause()).name or
           ignoreLocalityRules
         ):
-      return
+      return ]#
 
     return some(interpreter.stack[id])
 
